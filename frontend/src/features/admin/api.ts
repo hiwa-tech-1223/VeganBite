@@ -11,7 +11,6 @@ export const adminApi = {
     descriptionJa: string;
     categoryId: string;
     imageUrl: string;
-    price?: number;
   }, token: string) {
     const response = await fetch(`${API_BASE_URL}/api/products`, {
       method: 'POST',
@@ -35,7 +34,6 @@ export const adminApi = {
     descriptionJa?: string;
     categoryId?: string;
     imageUrl?: string;
-    price?: number;
   }, token: string) {
     const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
       method: 'PUT',

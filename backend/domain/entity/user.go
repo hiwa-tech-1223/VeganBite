@@ -22,7 +22,6 @@ type User struct {
 	Name        string    `json:"name"`
 	Avatar      string    `json:"avatar"`
 	MemberSince time.Time `json:"memberSince" gorm:"type:date;default:CURRENT_DATE"`
-	Phone       *string   `json:"phone"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 }

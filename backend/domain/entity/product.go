@@ -23,9 +23,6 @@ type Product struct {
 	Description      string     `json:"description"`
 	DescriptionJa    string     `json:"descriptionJa"`
 	ImageURL         string     `json:"imageUrl" gorm:"column:image_url"`
-	Price            *float64   `json:"price"`
-	StockQuantity    *int       `json:"stockQuantity"`
-	IsAvailable      bool       `json:"isAvailable" gorm:"default:true"`
 	Rating           float64    `json:"rating" gorm:"default:0"`
 	ReviewCount      int        `json:"reviewCount" gorm:"default:0"`
 	CreatedByAdminID *string    `json:"createdByAdminId"`

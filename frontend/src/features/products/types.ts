@@ -36,9 +36,6 @@ export interface ApiProduct {
   description: string;
   descriptionJa: string;
   imageUrl: string;
-  price: number | null;
-  stockQuantity: number | null;
-  isAvailable: boolean;
   rating: number;
   reviewCount: number;
   createdAt: string;
