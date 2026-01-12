@@ -135,7 +135,7 @@ export function MyPage() {
               <div className="flex gap-8 mb-4">
                 <div>
                   <p className="text-sm text-gray-500">Member Since / 登録日</p>
-                  <p style={{ color: 'var(--text)' }}>{user.memberSince || '-'}</p>
+                  <p style={{ color: 'var(--text)' }}>{user.memberSince ? user.memberSince.split('T')[0] : '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Reviews / レビュー数</p>
