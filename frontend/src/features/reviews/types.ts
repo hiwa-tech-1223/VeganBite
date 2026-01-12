@@ -1,5 +1,7 @@
 // レビュー関連の型定義
 
+import { ApiProduct } from '../products/types';
+
 export interface Review {
   id: string;
   productId: string;
@@ -21,6 +23,7 @@ export interface ApiReview {
     name: string;
     avatar: string;
   } | null;
+  product?: ApiProduct;  // マイページ用（ユーザーのレビュー一覧取得時に含まれる）
   rating: number;
   comment: string;
   createdAt: string;

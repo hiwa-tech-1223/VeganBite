@@ -1,39 +1,100 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router';
-import { Leaf, LogOut, Trash2, Edit2, X } from 'lucide-react';
-import { Review } from '../../reviews/types';
-import { User } from '../../auth/types';
+import { Leaf, LogOut, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../auth';
-import { mockProducts } from '../../../data/mockData';
+import { userApi } from '../api';
+import { reviewApi } from '../../reviews/api';
+import { ApiFavorite } from '../types';
+import { ApiReview } from '../../reviews/types';
 
-interface MyPageProps {
-  user: User;
-  reviews: Review[];
-  setReviews: (reviews: Review[]) => void;
-  favorites: string[];
-  setFavorites: (favorites: string[]) => void;
-}
-
-export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: MyPageProps) {
+export function MyPage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'reviews' | 'favorites'>('reviews');
+  const [favorites, setFavorites] = useState<ApiFavorite[]>([]);
+  const [reviews, setReviews] = useState<ApiReview[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user || !token) return;
+
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const [favoritesData, reviewsData] = await Promise.all([
+          userApi.getFavorites(user.id, token),
+          userApi.getReviews(user.id, token),
+        ]);
+        setFavorites(favoritesData || []);
+        setReviews(reviewsData || []);
+      } catch (err) {
+        console.error('Failed to fetch user data:', err);
+        setError('データの取得に失敗しました');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [user, token]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const handleDeleteReview = (reviewId: string) => {
-    setReviews(reviews.filter(r => r.id !== reviewId));
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!token) return;
+    try {
+      await reviewApi.deleteReview(reviewId, token);
+      setReviews(reviews.filter(r => r.id !== reviewId));
+    } catch (err) {
+      console.error('Failed to delete review:', err);
+      alert('レビューの削除に失敗しました');
+    }
   };
 
-  const handleRemoveFavorite = (productId: string) => {
-    setFavorites(favorites.filter(id => id !== productId));
+  const handleRemoveFavorite = async (productId: string) => {
+    if (!user || !token) return;
+    try {
+      await userApi.removeFavorite(user.id, productId, token);
+      setFavorites(favorites.filter(f => f.productId !== productId));
+    } catch (err) {
+      console.error('Failed to remove favorite:', err);
+      alert('お気に入りの削除に失敗しました');
+    }
   };
 
-  const userReviews = reviews.filter(r => r.userId === user.id);
-  const favoriteProducts = mockProducts.filter(p => favorites.includes(p.id));
+  if (!user) {
+    return null;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--background)' }}>
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 rounded-full text-white"
+            style={{ backgroundColor: 'var(--primary)' }}
+          >
+            Retry / 再試行
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: 'var(--background)' }}>
@@ -74,11 +135,11 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
               <div className="flex gap-8 mb-4">
                 <div>
                   <p className="text-sm text-gray-500">Member Since / 登録日</p>
-                  <p style={{ color: 'var(--text)' }}>{user.memberSince}</p>
+                  <p style={{ color: 'var(--text)' }}>{user.memberSince || '-'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Reviews / レビュー数</p>
-                  <p style={{ color: 'var(--text)' }}>{userReviews.length}</p>
+                  <p style={{ color: 'var(--text)' }}>{reviews.length}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Favorites / お気に入り数</p>
@@ -104,7 +165,7 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
               onClick={() => setActiveTab('reviews')}
               className="flex-1 px-6 py-4 transition-all"
               style={{
-                backgroundColor: activeTab === 'reviews' ? 'var(--background)' : 'white',
+                backgroundColor: activeTab === 'reviews' ? 'white' : 'var(--background)',
                 color: activeTab === 'reviews' ? 'var(--primary)' : 'var(--text)'
               }}
             >
@@ -114,7 +175,7 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
               onClick={() => setActiveTab('favorites')}
               className="flex-1 px-6 py-4 transition-all"
               style={{
-                backgroundColor: activeTab === 'favorites' ? 'var(--background)' : 'white',
+                backgroundColor: activeTab === 'favorites' ? 'white' : 'var(--background)',
                 color: activeTab === 'favorites' ? 'var(--primary)' : 'var(--text)'
               }}
             >
@@ -125,20 +186,20 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
           <div className="p-8">
             {activeTab === 'reviews' && (
               <div className="space-y-6">
-                {userReviews.length === 0 ? (
+                {reviews.length === 0 ? (
                   <p className="text-center text-gray-500 py-8">
                     No reviews yet. / まだレビューがありません。
                   </p>
                 ) : (
-                  userReviews.map(review => {
-                    const product = mockProducts.find(p => p.id === review.productId);
+                  reviews.map(review => {
+                    const product = review.product;
                     if (!product) return null;
                     return (
                       <div key={review.id} className="border rounded-xl p-4">
                         <div className="flex gap-4">
                           <Link to={`/product/${product.id}`}>
                             <img
-                              src={product.image}
+                              src={product.imageUrl}
                               alt={product.name}
                               className="w-24 h-24 rounded-lg object-cover"
                             />
@@ -148,6 +209,7 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
                               <h3 className="mb-1 hover:opacity-70" style={{ color: 'var(--text)' }}>
                                 {product.name}
                               </h3>
+                              <p className="text-sm text-gray-500 mb-2">{product.nameJa}</p>
                             </Link>
                             <div className="flex items-center gap-2 mb-2">
                               <div className="flex">
@@ -160,16 +222,12 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
                                   </span>
                                 ))}
                               </div>
-                              <span className="text-sm text-gray-500">{review.date}</span>
+                              <span className="text-sm text-gray-500">
+                                {new Date(review.createdAt).toLocaleDateString('ja-JP')}
+                              </span>
                             </div>
                             <p className="mb-3" style={{ color: 'var(--text)' }}>{review.comment}</p>
                             <div className="flex gap-2">
-                              <button
-                                className="flex items-center gap-1 px-3 py-1 rounded-full text-sm border border-gray-300 hover:bg-gray-50"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                                Edit / 編集
-                              </button>
                               <button
                                 onClick={() => handleDeleteReview(review.id)}
                                 className="flex items-center gap-1 px-3 py-1 rounded-full text-sm border border-red-300 text-red-600 hover:bg-red-50"
@@ -189,53 +247,57 @@ export function MyPage({ user, reviews, setReviews, favorites, setFavorites }: M
 
             {activeTab === 'favorites' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {favoriteProducts.length === 0 ? (
+                {favorites.length === 0 ? (
                   <p className="text-center text-gray-500 py-8 col-span-2">
                     No favorites yet. / まだお気に入りがありません。
                   </p>
                 ) : (
-                  favoriteProducts.map(product => (
-                    <div key={product.id} className="border rounded-xl overflow-hidden relative">
-                      <Link to={`/product/${product.id}`}>
-                        <img
-                          src={product.image}
-                          alt={product.name}
-                          className="w-full h-40 object-cover"
-                        />
-                      </Link>
-                      <button
-                        onClick={() => handleRemoveFavorite(product.id)}
-                        className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-50"
-                      >
-                        <X className="w-4 h-4 text-red-600" />
-                      </button>
-                      <div className="p-4">
+                  favorites.map(favorite => {
+                    const product = favorite.product;
+                    if (!product) return null;
+                    return (
+                      <div key={favorite.id} className="border rounded-xl overflow-hidden relative">
                         <Link to={`/product/${product.id}`}>
-                          <h3 className="mb-1 hover:opacity-70" style={{ color: 'var(--text)' }}>
-                            {product.name}
-                          </h3>
+                          <img
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="w-full h-40 object-cover"
+                          />
                         </Link>
-                        <p className="text-sm mb-2" style={{ color: 'var(--text)' }}>
-                          {product.nameJa}
-                        </p>
-                        <div className="flex items-center gap-2">
-                          <div className="flex">
-                            {[...Array(5)].map((_, i) => (
-                              <span
-                                key={i}
-                                style={{ color: i < Math.floor(product.rating) ? 'var(--accent)' : '#ddd' }}
-                              >
-                                ★
-                              </span>
-                            ))}
+                        <button
+                          onClick={() => handleRemoveFavorite(product.id)}
+                          className="absolute top-2 right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-md hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4 text-red-600" />
+                        </button>
+                        <div className="p-4">
+                          <Link to={`/product/${product.id}`}>
+                            <h3 className="mb-1 hover:opacity-70" style={{ color: 'var(--text)' }}>
+                              {product.name}
+                            </h3>
+                          </Link>
+                          <p className="text-sm mb-2" style={{ color: 'var(--text)' }}>
+                            {product.nameJa}
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <div className="flex">
+                              {[...Array(5)].map((_, i) => (
+                                <span
+                                  key={i}
+                                  style={{ color: i < Math.floor(product.rating) ? 'var(--accent)' : '#ddd' }}
+                                >
+                                  ★
+                                </span>
+                              ))}
+                            </div>
+                            <span className="text-sm" style={{ color: 'var(--text)' }}>
+                              ({product.reviewCount})
+                            </span>
                           </div>
-                          <span className="text-sm" style={{ color: 'var(--text)' }}>
-                            ({product.reviewCount})
-                          </span>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}
