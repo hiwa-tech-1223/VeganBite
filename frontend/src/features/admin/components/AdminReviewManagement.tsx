@@ -4,6 +4,7 @@ import { Admin } from '../../auth/types';
 import { Review } from '../../reviews/types';
 import { mockProducts, mockReviews } from '../../../data/mockData';
 import { AdminHeader } from './AdminHeader';
+import { StarRating } from '../../../components/StarRating';
 
 interface AdminReviewManagementProps {
   admin: Admin;
@@ -188,17 +189,7 @@ export function AdminReviewManagement({ admin, reviews, setReviews }: AdminRevie
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <span
-                            key={i}
-                            className="text-yellow-500"
-                            style={{ opacity: i < review.rating ? 1 : 0.2 }}
-                          >
-                            ★
-                          </span>
-                        ))}
-                      </div>
+                      <StarRating rating={review.rating} size="sm" />
                     </td>
                     <td className="px-6 py-4">
                       <p className="text-sm text-gray-900 max-w-xs truncate">

@@ -6,6 +6,7 @@ import { productApi } from '../api';
 import { ApiProduct } from '../types';
 import { reviewApi, ApiReview } from '../../reviews';
 import { userApi } from '../../users';
+import { StarRating } from '../../../components/StarRating';
 
 export function ProductDetail() {
   const { id } = useParams<{ id: string }>();
@@ -99,6 +100,9 @@ export function ProductDetail() {
       setReviews([newReview, ...reviews]);
       setComment('');
       setRating(5);
+      // 商品の評価を再取得して更新
+      const updatedProduct = await productApi.getProduct(Number(id));
+      setProduct(updatedProduct);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to submit review';
       setReviewError(message);
@@ -219,17 +223,7 @@ export function ProductDetail() {
                 {product.nameJa}
               </p>
               <div className="flex items-center gap-4 mb-6">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      className="text-2xl"
-                      style={{ color: i < Math.floor(product.rating) ? 'var(--accent)' : '#ddd' }}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
+                <StarRating rating={product.rating} showValue size="lg" />
                 <span style={{ color: 'var(--text)' }}>
                   ({product.reviewCount} reviews / レビュー)
                 </span>
@@ -361,16 +355,7 @@ export function ProductDetail() {
                             {new Date(review.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <span
-                              key={i}
-                              style={{ color: i < review.rating ? 'var(--accent)' : '#ddd' }}
-                            >
-                              ★
-                            </span>
-                          ))}
-                        </div>
+                        <StarRating rating={review.rating} size="sm" />
                       </div>
                       <p style={{ color: 'var(--text)' }}>{review.comment}</p>
                     </div>

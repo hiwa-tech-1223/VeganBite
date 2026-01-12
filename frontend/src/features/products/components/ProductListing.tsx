@@ -4,6 +4,7 @@ import { Search, Leaf, User, Loader2 } from 'lucide-react';
 import { productApi } from '../api';
 import { ApiProduct, ApiCategory } from '../types';
 import { User as UserType } from '../../auth/types';
+import { StarRating } from '../../../components/StarRating';
 
 interface ProductListingProps {
   user: UserType | null;
@@ -249,16 +250,7 @@ export function ProductListing({ user }: ProductListingProps) {
                   {product.nameJa}
                 </p>
                 <div className="flex items-center gap-2">
-                  <div className="flex">
-                    {[...Array(5)].map((_, i) => (
-                      <span
-                        key={i}
-                        style={{ color: i < Math.floor(product.rating) ? 'var(--accent)' : '#ddd' }}
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
+                  <StarRating rating={product.rating} showValue size="sm" />
                   <span className="text-sm" style={{ color: 'var(--text)' }}>
                     ({product.reviewCount})
                   </span>

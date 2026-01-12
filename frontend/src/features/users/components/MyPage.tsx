@@ -6,6 +6,7 @@ import { userApi } from '../api';
 import { reviewApi } from '../../reviews/api';
 import { ApiFavorite } from '../types';
 import { ApiReview } from '../../reviews/types';
+import { StarRating } from '../../../components/StarRating';
 
 export function MyPage() {
   const navigate = useNavigate();
@@ -212,16 +213,7 @@ export function MyPage() {
                               <p className="text-sm text-gray-500 mb-2">{product.nameJa}</p>
                             </Link>
                             <div className="flex items-center gap-2 mb-2">
-                              <div className="flex">
-                                {[...Array(5)].map((_, i) => (
-                                  <span
-                                    key={i}
-                                    style={{ color: i < review.rating ? 'var(--accent)' : '#ddd' }}
-                                  >
-                                    ★
-                                  </span>
-                                ))}
-                              </div>
+                              <StarRating rating={review.rating} size="sm" />
                               <span className="text-sm text-gray-500">
                                 {new Date(review.createdAt).toLocaleDateString('ja-JP')}
                               </span>
@@ -280,16 +272,7 @@ export function MyPage() {
                             {product.nameJa}
                           </p>
                           <div className="flex items-center gap-2">
-                            <div className="flex">
-                              {[...Array(5)].map((_, i) => (
-                                <span
-                                  key={i}
-                                  style={{ color: i < Math.floor(product.rating) ? 'var(--accent)' : '#ddd' }}
-                                >
-                                  ★
-                                </span>
-                              ))}
-                            </div>
+                            <StarRating rating={product.rating} showValue size="sm" />
                             <span className="text-sm" style={{ color: 'var(--text)' }}>
                               ({product.reviewCount})
                             </span>
