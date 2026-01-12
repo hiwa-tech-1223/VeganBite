@@ -36,6 +36,7 @@ export interface ApiProduct {
   description: string;
   descriptionJa: string;
   imageUrl: string;
+  affiliateUrl: string | null;  // アフィリエイトリンク
   rating: number;
   reviewCount: number;
   createdAt: string;

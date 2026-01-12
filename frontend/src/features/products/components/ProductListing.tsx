@@ -304,7 +304,10 @@ export function ProductListing({ user }: ProductListingProps) {
               <Link to="/privacy" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Privacy / プライバシー</Link>
             </div>
           </div>
-          <div className="text-center mt-4 text-sm" style={{ color: '#666' }}>
+          <div className="text-center mt-4 text-xs" style={{ color: '#999' }}>
+            ※ 本サイトはアフィリエイトプログラムに参加しています
+          </div>
+          <div className="text-center mt-2 text-sm" style={{ color: '#666' }}>
             © 2025 VeganBite. All rights reserved.
           </div>
         </div>

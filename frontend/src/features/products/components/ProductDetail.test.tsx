@@ -55,6 +55,7 @@ const mockProduct: ApiProduct = {
   description: 'Plant-based burger patty',
   descriptionJa: '植物性バーガーパティ',
   imageUrl: 'https://example.com/burger.jpg',
+  affiliateUrl: null,
   categories: [
     { id: 'cat-1', name: 'Meat Alternatives', nameJa: '代替肉', slug: 'meat-alternatives' },
     { id: 'cat-2', name: 'Snacks', nameJa: 'スナック', slug: 'snacks' },

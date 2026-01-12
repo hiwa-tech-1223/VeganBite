@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router';
-import { ArrowLeft, Heart, Leaf, Loader2 } from 'lucide-react';
+import { ArrowLeft, Heart, Leaf, Loader2, ExternalLink } from 'lucide-react';
 import { useAuth } from '../../auth';
 import { productApi } from '../api';
 import { ApiProduct } from '../types';
@@ -237,7 +237,7 @@ export function ProductDetail() {
               <button
                 onClick={toggleFavorite}
                 disabled={isTogglingFavorite}
-                className="flex items-center gap-2 px-6 py-3 rounded-full mb-6 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-6 py-3 rounded-full mb-4 transition-all disabled:opacity-50"
                 style={{
                   backgroundColor: isFavorite ? 'var(--accent)' : 'var(--background)',
                   color: isFavorite ? 'white' : 'var(--primary)'
@@ -246,6 +246,21 @@ export function ProductDetail() {
                 <Heart className="w-5 h-5" fill={isFavorite ? 'white' : 'none'} />
                 {isFavorite ? 'Added to Favorites / お気に入り済み' : 'Add to Favorites / お気に入りに追加'}
               </button>
+              {product.affiliateUrl && (
+                <a
+                  href={product.affiliateUrl}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className="flex items-center justify-center gap-2 px-6 py-3 rounded-full mb-6 transition-all hover:opacity-90"
+                  style={{
+                    backgroundColor: 'var(--primary)',
+                    color: 'white'
+                  }}
+                >
+                  <ExternalLink className="w-5 h-5" />
+                  Buy Now / 購入する
+                </a>
+              )}
             </div>
           </div>
 
@@ -366,6 +381,29 @@ export function ProductDetail() {
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white mt-16 border-t">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Leaf className="w-6 h-6" style={{ color: 'var(--primary)' }} />
+              <span style={{ color: 'var(--primary)' }}>VeganBite</span>
+            </div>
+            <div className="flex gap-6 text-sm">
+              <Link to="/" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Home / ホーム</Link>
+              <Link to="/terms" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Terms / 利用規約</Link>
+              <Link to="/privacy" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Privacy / プライバシー</Link>
+            </div>
+          </div>
+          <div className="text-center mt-4 text-xs" style={{ color: '#999' }}>
+            ※ 本サイトはアフィリエイトプログラムに参加しています
+          </div>
+          <div className="text-center mt-2 text-sm" style={{ color: '#666' }}>
+            © 2025 VeganBite. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
