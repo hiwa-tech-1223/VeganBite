@@ -16,3 +16,10 @@ type AdminRepository interface {
 	FindByGoogleIDOrEmail(googleID, email string) (*entity.Admin, error)
 	Update(admin *entity.Admin) error
 }
+
+// AdminRoleRepository - 管理者ロールリポジトリインターフェース
+type AdminRoleRepository interface {
+	FindAll() ([]entity.AdminRole, error)
+	FindByID(id int64) (*entity.AdminRole, error)
+	FindByName(name string) (*entity.AdminRole, error)
+}

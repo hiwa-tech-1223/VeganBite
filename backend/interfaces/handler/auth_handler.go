@@ -99,7 +99,13 @@ func (h *AuthHandler) HandleAdminGoogleCallback(c echo.Context) error {
 		return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL+"/admin/login?error=not_admin")
 	}
 
-	jwtToken, err := h.jwtService.GenerateToken(admin.ID, admin.Email, admin.Name, admin.Avatar, true, admin.Role)
+	// ロール名を取得（nilの場合はデフォルト値）
+	roleName := "admin"
+	if admin.Role != nil {
+		roleName = admin.Role.Name
+	}
+
+	jwtToken, err := h.jwtService.GenerateToken(admin.ID, admin.Email, admin.Name, admin.Avatar, true, roleName)
 	if err != nil {
 		return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL+"/admin/login?error=jwt")
 	}

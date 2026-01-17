@@ -52,7 +52,7 @@ func NewAdminRepository(db *gorm.DB) repository.AdminRepository {
 
 func (r *adminRepository) FindByID(id int64) (*entity.Admin, error) {
 	var admin entity.Admin
-	if err := r.db.First(&admin, "id = ?", id).Error; err != nil {
+	if err := r.db.Preload("Role").First(&admin, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &admin, nil
@@ -60,7 +60,7 @@ func (r *adminRepository) FindByID(id int64) (*entity.Admin, error) {
 
 func (r *adminRepository) FindByGoogleIDOrEmail(googleID, email string) (*entity.Admin, error) {
 	var admin entity.Admin
-	if err := r.db.Where("google_id = ? OR email = ?", googleID, email).First(&admin).Error; err != nil {
+	if err := r.db.Preload("Role").Where("google_id = ? OR email = ?", googleID, email).First(&admin).Error; err != nil {
 		return nil, err
 	}
 	return &admin, nil
@@ -68,4 +68,38 @@ func (r *adminRepository) FindByGoogleIDOrEmail(googleID, email string) (*entity
 
 func (r *adminRepository) Update(admin *entity.Admin) error {
 	return r.db.Save(admin).Error
+}
+
+// AdminRoleRepository
+type adminRoleRepository struct {
+	db *gorm.DB
+}
+
+// NewAdminRoleRepository - 管理者ロールリポジトリの生成
+func NewAdminRoleRepository(db *gorm.DB) repository.AdminRoleRepository {
+	return &adminRoleRepository{db: db}
+}
+
+func (r *adminRoleRepository) FindAll() ([]entity.AdminRole, error) {
+	var roles []entity.AdminRole
+	if err := r.db.Order("id").Find(&roles).Error; err != nil {
+		return nil, err
+	}
+	return roles, nil
+}
+
+func (r *adminRoleRepository) FindByID(id int64) (*entity.AdminRole, error) {
+	var role entity.AdminRole
+	if err := r.db.First(&role, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &role, nil
+}
+
+func (r *adminRoleRepository) FindByName(name string) (*entity.AdminRole, error) {
+	var role entity.AdminRole
+	if err := r.db.Where("name = ?", name).First(&role).Error; err != nil {
+		return nil, err
+	}
+	return &role, nil
 }
