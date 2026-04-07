@@ -24,5 +24,5 @@ export interface AuthContextType {
   isAdmin: boolean;
   login: (token: string) => Promise<void>;
   logout: () => void;
-  getAuthHeader: () => { Authorization: string } | {};
+  getAuthHeader: () => { Authorization?: string };
 }

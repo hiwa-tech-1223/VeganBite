@@ -2,7 +2,7 @@
 
 import { ManagedCustomer } from './customerTypes';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 const STATUS_MAP: Record<number, ManagedCustomer['status']> = {
   0: 'active',

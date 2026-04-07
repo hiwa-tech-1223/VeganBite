@@ -12,6 +12,7 @@ vendor/
 dist/
 build/
 tmp/
+.next/
 
 # IDE
 .idea/
@@ -34,3 +35,6 @@ bin/
 
 # playwright
 .playwright-mcp/
+
+# terr
+terraform 
