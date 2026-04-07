@@ -13,6 +13,7 @@ dist/
 build/
 tmp/
 .next/
+.open-next/
 
 # IDE
 .idea/
