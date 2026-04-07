@@ -37,5 +37,8 @@ bin/
 # playwright
 .playwright-mcp/
 
-# terr
-terraform 
+# Terraform
+terraform/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
