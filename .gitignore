@@ -12,6 +12,8 @@ vendor/
 dist/
 build/
 tmp/
+.next/
+.open-next/
 
 # IDE
 .idea/
@@ -34,3 +36,9 @@ bin/
 
 # playwright
 .playwright-mcp/
+
+# Terraform
+terraform/.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars

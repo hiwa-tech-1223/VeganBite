@@ -1,4 +1,4 @@
-import { Link } from 'react-router';
+import Link from 'next/link';
 import { Leaf } from 'lucide-react';
 
 interface FooterProps {
@@ -15,9 +15,9 @@ export function Footer({ showAffiliateNotice = false }: FooterProps) {
             <span style={{ color: 'var(--primary)' }}>VeganBite</span>
           </div>
           <div className="flex gap-6 text-sm">
-            <Link to="/" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Home / ホーム</Link>
-            <Link to="/terms" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Terms / 利用規約</Link>
-            <Link to="/privacy" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Privacy / プライバシー</Link>
+            <Link href="/" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Home / ホーム</Link>
+            <Link href="/terms" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Terms / 利用規約</Link>
+            <Link href="/privacy" className="hover:opacity-70" style={{ color: 'var(--text)' }}>Privacy / プライバシー</Link>
           </div>
         </div>
         {showAffiliateNotice && (

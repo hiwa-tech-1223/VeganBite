@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
-import { afterEach, vi } from 'vitest';
 
 // 各テスト後にクリーンアップ
 afterEach(() => {
@@ -10,23 +9,23 @@ afterEach(() => {
 // window.matchMedia のモック（CSS Media Queries対応）
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
+  value: jest.fn().mockImplementation((query: string) => ({
     matches: false,
     media: query,
     onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
+    addListener: jest.fn(),
+    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    dispatchEvent: jest.fn(),
   })),
 });
 
 // IntersectionObserver のモック
 class MockIntersectionObserver {
-  observe = vi.fn();
-  disconnect = vi.fn();
-  unobserve = vi.fn();
+  observe = jest.fn();
+  disconnect = jest.fn();
+  unobserve = jest.fn();
 }
 Object.defineProperty(window, 'IntersectionObserver', {
   writable: true,
@@ -35,9 +34,9 @@ Object.defineProperty(window, 'IntersectionObserver', {
 
 // ResizeObserver のモック
 class MockResizeObserver {
-  observe = vi.fn();
-  disconnect = vi.fn();
-  unobserve = vi.fn();
+  observe = jest.fn();
+  disconnect = jest.fn();
+  unobserve = jest.fn();
 }
 Object.defineProperty(window, 'ResizeObserver', {
   writable: true,

@@ -1,6 +1,6 @@
 // 認証関連のAPI
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 export const authApi = {
   // 現在のユーザー情報を取得
@@ -12,7 +12,7 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch current user');
+      return null;
     }
 
     return response.json();
