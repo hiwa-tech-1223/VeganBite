@@ -1,0 +1,137 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  # フロントエンド: Next.js ビルド → Lambda + S3 にデプロイ
+  deploy-frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build with OpenNext
+        run: npm run build:aws
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # 静的ファイルをS3にアップロード
+      - name: Upload static assets to S3
+        run: aws s3 sync .open-next/assets s3://${{ secrets.S3_BUCKET_NAME }}/_next --delete
+
+      # SSR用Lambda関数を更新
+      - name: Deploy SSR function
+        run: |
+          cd .open-next/server-functions/default
+          zip -r /tmp/frontend.zip .
+          aws lambda update-function-code \
+            --function-name veganbite-dev-frontend \
+            --zip-file fileb:///tmp/frontend.zip
+
+      # 画像最適化用Lambda関数を更新
+      - name: Deploy image optimization function
+        run: |
+          cd .open-next/image-optimization-function
+          zip -r /tmp/image-optimization.zip .
+          aws lambda update-function-code \
+            --function-name veganbite-dev-image-optimization \
+            --zip-file fileb:///tmp/image-optimization.zip
+
+      # CloudFrontのキャッシュをクリア
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+  # バックエンド: Go ビルド → Lambda にデプロイ
+  deploy-backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Build Lambda binary
+        run: GOOS=linux GOARCH=arm64 go build -o bootstrap ./cmd/lambda
+        env:
+          CGO_ENABLED: '0'
+
+      - name: Package Lambda function
+        run: zip -j /tmp/backend.zip bootstrap
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy backend function
+        run: |
+          aws lambda update-function-code \
+            --function-name veganbite-dev-backend \
+            --zip-file fileb:///tmp/backend.zip
+
+  # テスト: PRとpush時に実行
+  test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # フロントエンドのテスト
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend - Install & Test
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run check-types
+          npm run test:run
+
+      # バックエンドのテスト
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Backend - Test
+        working-directory: backend
+        run: go test ./...
