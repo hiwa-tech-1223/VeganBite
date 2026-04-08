@@ -42,7 +42,7 @@ jobs:
 
       # 静的ファイルをS3にアップロード
       - name: Upload static assets to S3
-        run: aws s3 sync .open-next/assets s3://${{ secrets.S3_BUCKET_NAME }}/_next --delete
+        run: aws s3 sync .open-next/assets s3://${{ secrets.S3_BUCKET_NAME }} --delete
 
       # SSR用Lambda関数を更新
       - name: Deploy SSR function
