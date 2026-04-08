@@ -68,7 +68,7 @@ resource "aws_lambda_function" "frontend" {
   function_name = "${var.project}-${var.env}-frontend"
   role          = aws_iam_role.lambda.arn
   handler       = "index.handler"
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
   timeout       = 30
   memory_size   = 512
@@ -112,7 +112,7 @@ resource "aws_lambda_function" "image_optimization" {
   function_name = "${var.project}-${var.env}-image-optimization"
   role          = aws_iam_role.lambda.arn
   handler       = "index.handler"
-  runtime       = "nodejs20.x"
+  runtime       = "nodejs22.x"
   architectures = ["arm64"]
   timeout       = 30
   memory_size   = 512
