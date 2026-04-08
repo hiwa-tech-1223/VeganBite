@@ -1,6 +1,6 @@
 // カスタマー関連のAPI
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+import { API_BASE_URL } from '../config';
 
 export const customerApi = {
   // カスタマーのお気に入り一覧を取得
