@@ -45,6 +45,9 @@ services:
     container_name: veganbite-frontend
     ports:
       - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      API_URL_INTERNAL: http://backend:8080
     volumes:
       - ./frontend:/app
       - /app/node_modules

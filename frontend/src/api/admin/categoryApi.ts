@@ -2,7 +2,7 @@
 
 import { CategoryFormData } from './categoryTypes';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+import { API_BASE_URL } from '../config';
 
 export const categoryApi = {
   async createCategory(data: CategoryFormData, token: string) {
