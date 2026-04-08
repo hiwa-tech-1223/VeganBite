@@ -48,6 +48,7 @@ jobs:
       - name: Deploy SSR function
         run: |
           cd .open-next/server-functions/default
+          node -e "const p=require('./package.json'); p.type='module'; require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"
           zip -r /tmp/frontend.zip .
           aws lambda update-function-code \
             --function-name veganbite-dev-frontend \
@@ -57,6 +58,7 @@ jobs:
       - name: Deploy image optimization function
         run: |
           cd .open-next/image-optimization-function
+          echo '{"type":"module"}' > package.json
           zip -r /tmp/image-optimization.zip .
           aws lambda update-function-code \
             --function-name veganbite-dev-image-optimization \
