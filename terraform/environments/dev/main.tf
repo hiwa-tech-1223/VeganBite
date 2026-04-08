@@ -8,12 +8,11 @@ terraform {
     }
   }
 
-  # AWSアカウント作成後にS3バックエンドに切り替える
-  # backend "s3" {
-  #   bucket = "veganbite-terraform-state"
-  #   key    = "dev/terraform.tfstate"
-  #   region = "ap-northeast-1"
-  # }
+  backend "s3" {
+    bucket = "veganbite-terraform-state"
+    key    = "dev/terraform.tfstate"
+    region = "ap-northeast-1"
+  }
 }
 
 provider "aws" {
@@ -57,7 +56,7 @@ module "lambda_backend" {
   jwt_secret         = var.jwt_secret
   google_client_id     = var.google_client_id
   google_client_secret = var.google_client_secret
-  frontend_url       = module.cloudfront.distribution_url
+  frontend_url       = var.frontend_url
 }
 
 # --- Lambda (Next.js) + S3 ---

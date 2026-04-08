@@ -74,7 +74,8 @@ resource "aws_lambda_function" "frontend" {
   memory_size   = 512
 
   # デプロイ時にCI/CDから更新される（初回はダミー）
-  filename = "${path.module}/dummy.zip"
+  filename         = data.archive_file.dummy.output_path
+  source_code_hash = data.archive_file.dummy.output_base64sha256
 
   environment {
     variables = {
@@ -96,9 +97,14 @@ resource "aws_lambda_function_url" "frontend" {
 }
 
 # ダミーZIP（初回デプロイ用）
-resource "local_file" "dummy" {
-  content  = "placeholder"
-  filename = "${path.module}/dummy.zip"
+data "archive_file" "dummy" {
+  type        = "zip"
+  output_path = "${path.module}/dummy.zip"
+
+  source {
+    content  = "exports.handler = async () => ({ statusCode: 200, body: 'placeholder' });"
+    filename = "index.js"
+  }
 }
 
 # 画像最適化用Lambda
@@ -111,7 +117,8 @@ resource "aws_lambda_function" "image_optimization" {
   timeout       = 30
   memory_size   = 512
 
-  filename = "${path.module}/dummy.zip"
+  filename         = data.archive_file.dummy.output_path
+  source_code_hash = data.archive_file.dummy.output_base64sha256
 
   environment {
     variables = {
