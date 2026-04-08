@@ -1,6 +1,7 @@
 variable "project" {}
 variable "env" {}
-variable "api_url" {}
+variable "backend_function_url" {}
+variable "backend_lambda_arn" {}
 
 # S3バケット（静的アセット用）
 resource "aws_s3_bucket" "assets" {
@@ -63,7 +64,31 @@ resource "aws_iam_role_policy" "s3_access" {
   })
 }
 
-# Lambda関数（Next.js SSR）
+# Go Lambda Function URLの呼び出し権限（内部通信用）
+resource "aws_iam_role_policy" "invoke_backend" {
+  name = "${var.project}-${var.env}-invoke-backend"
+  role = aws_iam_role.lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = "lambda:InvokeFunctionUrl"
+      Resource = var.backend_lambda_arn
+    }]
+  })
+}
+
+# Go Lambda側にNext.js LambdaのIAMロールからの呼び出しを許可
+resource "aws_lambda_permission" "backend_from_frontend" {
+  statement_id           = "AllowFrontendLambdaInvoke"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = var.backend_lambda_arn
+  principal              = aws_iam_role.lambda.arn
+  function_url_auth_type = "AWS_IAM"
+}
+
+# Lambda関数（Next.js SSR — 唯一の外部窓口）
 resource "aws_lambda_function" "frontend" {
   function_name = "${var.project}-${var.env}-frontend"
   role          = aws_iam_role.lambda.arn
@@ -73,27 +98,36 @@ resource "aws_lambda_function" "frontend" {
   timeout       = 30
   memory_size   = 512
 
-  # デプロイ時にCI/CDから更新される（初回はダミー）
   filename         = data.archive_file.dummy.output_path
   source_code_hash = data.archive_file.dummy.output_base64sha256
 
   environment {
     variables = {
-      NEXT_PUBLIC_API_URL = var.api_url
+      API_URL_INTERNAL = var.backend_function_url
     }
   }
 }
 
-# Lambda Function URL
+# Lambda Function URL（CloudFrontからアクセス）
 resource "aws_lambda_function_url" "frontend" {
   function_name      = aws_lambda_function.frontend.function_name
   authorization_type = "NONE"
+}
 
-  cors {
-    allow_origins = ["*"]
-    allow_methods = ["GET", "POST", "PUT", "DELETE"]
-    allow_headers = ["*"]
-  }
+# Function URLのパブリックアクセス許可（InvokeFunctionUrlとInvokeFunctionの両方が必要）
+resource "aws_lambda_permission" "frontend_public_url" {
+  statement_id  = "AllowPublicInvokeFunctionUrl"
+  action        = "lambda:InvokeFunctionUrl"
+  function_name = aws_lambda_function.frontend.function_name
+  principal     = "*"
+  function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "frontend_public_invoke" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.frontend.function_name
+  principal     = "*"
 }
 
 # ダミーZIP（初回デプロイ用）

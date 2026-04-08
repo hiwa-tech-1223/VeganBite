@@ -31,7 +31,7 @@ jobs:
       - name: Build with OpenNext
         run: npm run build:aws
         env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.API_URL }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.CLOUDFRONT_URL }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
