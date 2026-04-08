@@ -14,6 +14,7 @@ build/
 tmp/
 .next/
 .open-next/
+*.tsbuildinfo
 
 # IDE
 .idea/
@@ -38,7 +39,8 @@ bin/
 .playwright-mcp/
 
 # Terraform
-terraform/.terraform/
+**/.terraform/
+terraform/modules/*/dummy.zip
 *.tfstate
 *.tfstate.backup
 *.tfvars
