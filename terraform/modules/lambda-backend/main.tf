@@ -85,10 +85,10 @@ resource "aws_lambda_function" "backend" {
   }
 }
 
-# Lambda Function URL（API Gateway の代わりにシンプルに公開）
+# Lambda Function URL（IAM認証 — Next.js Lambdaからの内部通信専用）
 resource "aws_lambda_function_url" "backend" {
   function_name      = aws_lambda_function.backend.function_name
-  authorization_type = "NONE"
+  authorization_type = "AWS_IAM"
 }
 
 # ダミーZIP（初回デプロイ用）
@@ -113,4 +113,8 @@ output "lambda_sg_id" {
 
 output "function_name" {
   value = aws_lambda_function.backend.function_name
+}
+
+output "lambda_arn" {
+  value = aws_lambda_function.backend.arn
 }

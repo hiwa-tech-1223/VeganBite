@@ -41,7 +41,7 @@ module "rds" {
   lambda_sg_id       = module.lambda_backend.lambda_sg_id
 }
 
-# --- Lambda (Go API) ---
+# --- Lambda (Go API) — 内部通信専用 ---
 module "lambda_backend" {
   source = "../../modules/lambda-backend"
 
@@ -59,23 +59,24 @@ module "lambda_backend" {
   frontend_url       = var.frontend_url
 }
 
-# --- Lambda (Next.js) + S3 ---
+# --- Lambda (Next.js) + S3 — 唯一の外部窓口 ---
 module "lambda_frontend" {
   source = "../../modules/lambda-frontend"
 
-  project  = var.project
-  env      = var.env
-  api_url  = module.lambda_backend.function_url
+  project              = var.project
+  env                  = var.env
+  backend_function_url = module.lambda_backend.function_url
+  backend_lambda_arn   = module.lambda_backend.lambda_arn
 }
 
-# --- CloudFront ---
+# --- CloudFront — S3とNext.js Lambdaのみ ---
 module "cloudfront" {
   source = "../../modules/cloudfront"
 
-  project                  = var.project
-  env                      = var.env
-  s3_bucket_domain_name    = module.lambda_frontend.s3_bucket_domain_name
-  s3_bucket_id             = module.lambda_frontend.s3_bucket_id
-  frontend_function_url    = module.lambda_frontend.function_url
-  backend_function_url     = module.lambda_backend.function_url
+  project               = var.project
+  env                   = var.env
+  s3_bucket_domain_name = module.lambda_frontend.s3_bucket_domain_name
+  s3_bucket_id          = module.lambda_frontend.s3_bucket_id
+  frontend_function_url = module.lambda_frontend.function_url
+  image_optimization_url = module.lambda_frontend.image_optimization_url
 }

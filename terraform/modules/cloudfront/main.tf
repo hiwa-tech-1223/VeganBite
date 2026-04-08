@@ -3,7 +3,7 @@ variable "env" {}
 variable "s3_bucket_domain_name" {}
 variable "s3_bucket_id" {}
 variable "frontend_function_url" {}
-variable "backend_function_url" {}
+variable "image_optimization_url" {}
 
 # CloudFront用のOAC（S3アクセス制御）
 resource "aws_cloudfront_origin_access_control" "s3" {
@@ -13,10 +13,10 @@ resource "aws_cloudfront_origin_access_control" "s3" {
   signing_protocol                  = "sigv4"
 }
 
-# Lambda Function URLからホスト名を抽出するlocal
+# Lambda Function URLからホスト名を抽出
 locals {
-  frontend_origin = replace(replace(var.frontend_function_url, "https://", ""), "/", "")
-  backend_origin  = replace(replace(var.backend_function_url, "https://", ""), "/", "")
+  frontend_origin        = replace(replace(var.frontend_function_url, "https://", ""), "/", "")
+  image_optimization_origin = replace(replace(var.image_optimization_url, "https://", ""), "/", "")
 }
 
 # CloudFrontディストリビューション
@@ -32,7 +32,7 @@ resource "aws_cloudfront_distribution" "main" {
     origin_access_control_id = aws_cloudfront_origin_access_control.s3.id
   }
 
-  # オリジン2: Lambda Function URL（Next.js SSR）
+  # オリジン2: Lambda Function URL（Next.js SSR — 唯一の外部窓口）
   origin {
     domain_name = local.frontend_origin
     origin_id   = "frontend-lambda"
@@ -45,10 +45,10 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # オリジン3: Lambda Function URL（Go API）
+  # オリジン3: Lambda Function URL（画像最適化）
   origin {
-    domain_name = local.backend_origin
-    origin_id   = "backend-lambda"
+    domain_name = local.image_optimization_origin
+    origin_id   = "image-optimization-lambda"
 
     custom_origin_config {
       http_port              = 80
@@ -58,7 +58,7 @@ resource "aws_cloudfront_distribution" "main" {
     }
   }
 
-  # デフォルト: Next.js SSR Lambda
+  # デフォルト: 全リクエストをNext.js Lambda経由
   default_cache_behavior {
     target_origin_id       = "frontend-lambda"
     viewer_protocol_policy = "redirect-to-https"
@@ -67,7 +67,7 @@ resource "aws_cloudfront_distribution" "main" {
 
     forwarded_values {
       query_string = true
-      headers      = ["Host", "Authorization"]
+      headers      = ["Authorization", "Content-Type"]
 
       cookies {
         forward = "all"
@@ -79,29 +79,29 @@ resource "aws_cloudfront_distribution" "main" {
     max_ttl     = 0
   }
 
-  # /api/* → Go API Lambda
+  # /_next/image* → 画像最適化Lambda
   ordered_cache_behavior {
-    path_pattern           = "/api/*"
-    target_origin_id       = "backend-lambda"
+    path_pattern           = "/_next/image*"
+    target_origin_id       = "image-optimization-lambda"
     viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+    allowed_methods        = ["GET", "HEAD"]
     cached_methods         = ["GET", "HEAD"]
 
     forwarded_values {
       query_string = true
-      headers      = ["Host", "Authorization", "Content-Type"]
 
       cookies {
-        forward = "all"
+        forward = "none"
       }
     }
 
-    min_ttl     = 0
-    default_ttl = 0
-    max_ttl     = 0
+    min_ttl     = 86400
+    default_ttl = 604800
+    max_ttl     = 31536000
+    compress    = true
   }
 
-  # /_next/static/* → S3
+  # /_next/static/* → S3（静的アセットはキャッシュ）
   ordered_cache_behavior {
     path_pattern           = "/_next/static/*"
     target_origin_id       = "s3-assets"
