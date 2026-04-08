@@ -46,7 +46,7 @@ resource "aws_security_group" "rds" {
 resource "aws_db_instance" "main" {
   identifier     = "${var.project}-${var.env}-db"
   engine         = "postgres"
-  engine_version = "16.4"
+  engine_version = "18.3"
   instance_class = "db.t4g.micro"
 
   allocated_storage     = 20
@@ -60,9 +60,10 @@ resource "aws_db_instance" "main" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  skip_final_snapshot = true
-  multi_az            = false
-  publicly_accessible = false
+  skip_final_snapshot          = true
+  multi_az                     = false
+  publicly_accessible          = false
+  allow_major_version_upgrade  = true
 
   tags = {
     Name = "${var.project}-${var.env}-db"

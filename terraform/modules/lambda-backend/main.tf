@@ -61,7 +61,8 @@ resource "aws_lambda_function" "backend" {
   memory_size   = 256
 
   # デプロイ時にCI/CDから更新される（初回はダミー）
-  filename = "${path.module}/dummy.zip"
+  filename         = data.archive_file.dummy.output_path
+  source_code_hash = data.archive_file.dummy.output_base64sha256
 
   vpc_config {
     subnet_ids         = var.private_subnet_ids
@@ -91,9 +92,14 @@ resource "aws_lambda_function_url" "backend" {
 }
 
 # ダミーZIP（初回デプロイ用）
-resource "local_file" "dummy" {
-  content  = "placeholder"
-  filename = "${path.module}/dummy.zip"
+data "archive_file" "dummy" {
+  type        = "zip"
+  output_path = "${path.module}/dummy.zip"
+
+  source {
+    content  = "placeholder"
+    filename = "bootstrap"
+  }
 }
 
 # Outputs
