@@ -67,7 +67,20 @@ func NewEcho(cfg *config.Config) (*echo.Echo, error) {
 	e := echo.New()
 
 	// Middleware
-	e.Use(middleware.Logger())
+	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus: true,
+		LogURI:    true,
+		LogMethod: true,
+		LogError:  true,
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			if v.Error != nil {
+				c.Logger().Errorf("%s %s %d %v", v.Method, v.URI, v.Status, v.Error)
+			} else {
+				c.Logger().Infof("%s %s %d", v.Method, v.URI, v.Status)
+			}
+			return nil
+		},
+	}))
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", cfg.FrontendURL},
