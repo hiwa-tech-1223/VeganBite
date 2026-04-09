@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { invokeBackendApi } from '@/api/lambda-client';
 
 // ブラウザからのAPIリクエストをGo Lambdaに中継する
@@ -27,6 +27,14 @@ async function handler(request: NextRequest, { params }: { params: Promise<{ pat
     body,
     headers,
   });
+
+  // リダイレクトレスポンスの場合、NextResponseのredirectを使用
+  if (response.status >= 300 && response.status < 400) {
+    const location = response.headers.get('Location');
+    if (location) {
+      return NextResponse.redirect(location, response.status);
+    }
+  }
 
   return response;
 }
