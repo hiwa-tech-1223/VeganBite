@@ -1,12 +1,11 @@
 // カテゴリ管理関連のAPI
 
 import { CategoryFormData } from './categoryTypes';
-
-import { API_BASE_URL } from '../config';
+import { apiFetch } from '../config';
 
 export const categoryApi = {
   async createCategory(data: CategoryFormData, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/categories`, {
+    const response = await apiFetch('/api/categories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -21,7 +20,7 @@ export const categoryApi = {
   },
 
   async updateCategory(id: number, data: CategoryFormData, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
+    const response = await apiFetch(`/api/categories/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -36,7 +35,7 @@ export const categoryApi = {
   },
 
   async deleteCategory(id: number, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/categories/${id}`, {
+    const response = await apiFetch(`/api/categories/${id}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

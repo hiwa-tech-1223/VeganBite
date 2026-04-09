@@ -75,6 +75,7 @@ resource "aws_lambda_function" "backend" {
       DB_NAME                  = var.db_name
       DB_USER                  = var.db_username
       DB_PASSWORD              = var.db_password
+      DB_SSLMODE               = "require"
       JWT_SECRET               = var.jwt_secret
       GOOGLE_CLIENT_ID         = var.google_client_id
       GOOGLE_CLIENT_SECRET     = var.google_client_secret

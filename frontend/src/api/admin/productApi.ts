@@ -1,6 +1,6 @@
 // 商品管理関連のAPI
 
-import { API_BASE_URL } from '../config';
+import { apiFetch } from '../config';
 
 export const adminApi = {
   // 商品を作成
@@ -20,7 +20,7 @@ export const adminApi = {
       ...data,
       categories: data.categoryIds.map(id => ({ id })),
     };
-    const response = await fetch(`${API_BASE_URL}/api/products`, {
+    const response = await apiFetch('/api/products', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -51,7 +51,7 @@ export const adminApi = {
       ...data,
       categories: data.categoryIds?.map(id => ({ id })),
     };
-    const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
+    const response = await apiFetch(`/api/products/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ export const adminApi = {
 
   // 商品を削除
   async deleteProduct(id: string, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/products/${id}`, {
+    const response = await apiFetch(`/api/products/${id}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

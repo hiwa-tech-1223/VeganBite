@@ -2,6 +2,7 @@ variable "project" {}
 variable "env" {}
 variable "backend_function_url" {}
 variable "backend_lambda_arn" {}
+variable "backend_function_name" {}
 
 # S3バケット（静的アセット用）
 resource "aws_s3_bucket" "assets" {
@@ -64,7 +65,7 @@ resource "aws_iam_role_policy" "s3_access" {
   })
 }
 
-# Go Lambda Function URLの呼び出し権限（内部通信用）
+# Go Lambdaの呼び出し権限（内部通信用）
 resource "aws_iam_role_policy" "invoke_backend" {
   name = "${var.project}-${var.env}-invoke-backend"
   role = aws_iam_role.lambda.id
@@ -73,7 +74,10 @@ resource "aws_iam_role_policy" "invoke_backend" {
     Version = "2012-10-17"
     Statement = [{
       Effect = "Allow"
-      Action = "lambda:InvokeFunctionUrl"
+      Action = [
+        "lambda:InvokeFunction",
+        "lambda:InvokeFunctionUrl",
+      ]
       Resource = var.backend_lambda_arn
     }]
   })
@@ -103,7 +107,9 @@ resource "aws_lambda_function" "frontend" {
 
   environment {
     variables = {
-      API_URL_INTERNAL = var.backend_function_url
+      API_URL_INTERNAL       = var.backend_function_url
+      BACKEND_FUNCTION_NAME  = var.backend_function_name
+      AWS_REGION_NAME        = "ap-northeast-1"
     }
   }
 }
