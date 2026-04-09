@@ -80,8 +80,8 @@ resource "aws_lambda_function" "backend" {
       GOOGLE_CLIENT_ID         = var.google_client_id
       GOOGLE_CLIENT_SECRET     = var.google_client_secret
       FRONTEND_URL             = var.frontend_url
-      OAUTH_REDIRECT_URL       = "${var.frontend_url}/auth/callback"
-      OAUTH_ADMIN_REDIRECT_URL = "${var.frontend_url}/admin/auth/callback"
+      OAUTH_REDIRECT_URL       = "${var.frontend_url}/api/auth/google/callback"
+      OAUTH_ADMIN_REDIRECT_URL = "${var.frontend_url}/api/auth/admin/google/callback"
     }
   }
 }
