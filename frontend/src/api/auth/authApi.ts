@@ -1,11 +1,11 @@
 // 認証関連のAPI
 
-import { API_BASE_URL } from '../config';
+import { apiFetch } from '../config';
 
 export const authApi = {
   // 現在のユーザー情報を取得
   async getCurrentUser(token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const response = await apiFetch('/api/auth/me', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -20,7 +20,7 @@ export const authApi = {
 
   // ログアウト
   async logout(token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    const response = await apiFetch('/api/auth/logout', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -36,11 +36,11 @@ export const authApi = {
 
   // Google OAuth URLを取得
   getGoogleLoginUrl(): string {
-    return `${API_BASE_URL}/api/auth/google`;
+    return '/api/auth/google';
   },
 
   // 管理者用Google OAuth URLを取得
   getAdminGoogleLoginUrl(): string {
-    return `${API_BASE_URL}/api/auth/admin/google`;
+    return '/api/auth/admin/google';
   },
 };
