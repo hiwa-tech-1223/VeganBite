@@ -37,8 +37,16 @@ export async function invokeBackendApi(
   const result = await lambdaClient.send(command);
   const responsePayload = JSON.parse(new TextDecoder().decode(result.Payload));
 
+  // レスポンスヘッダーを構築
+  const responseHeaders = new Headers();
+  if (responsePayload.headers) {
+    for (const [key, value] of Object.entries(responsePayload.headers)) {
+      responseHeaders.set(key, value as string);
+    }
+  }
+
   return new Response(responsePayload.body, {
     status: responsePayload.statusCode,
-    headers: responsePayload.headers,
+    headers: responseHeaders,
   });
 }
