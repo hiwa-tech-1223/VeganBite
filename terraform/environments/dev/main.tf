@@ -65,8 +65,9 @@ module "lambda_frontend" {
 
   project              = var.project
   env                  = var.env
-  backend_function_url = module.lambda_backend.function_url
-  backend_lambda_arn   = module.lambda_backend.lambda_arn
+  backend_function_url  = module.lambda_backend.function_url
+  backend_lambda_arn    = module.lambda_backend.lambda_arn
+  backend_function_name = module.lambda_backend.function_name
 }
 
 # --- CloudFront — S3とNext.js Lambdaのみ ---

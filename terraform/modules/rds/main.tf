@@ -72,5 +72,5 @@ resource "aws_db_instance" "main" {
 
 # Outputs
 output "db_endpoint" {
-  value = aws_db_instance.main.endpoint
+  value = aws_db_instance.main.address
 }

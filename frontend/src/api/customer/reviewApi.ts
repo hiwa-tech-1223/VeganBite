@@ -1,13 +1,12 @@
 // レビュー関連のAPI
 
 import { ApiReview } from './reviewTypes';
-
-import { API_BASE_URL } from '../config';
+import { apiFetch } from '../config';
 
 export const reviewApi = {
   // 商品のレビュー一覧を取得
   async getProductReviews(productId: number): Promise<ApiReview[]> {
-    const response = await fetch(`${API_BASE_URL}/api/products/${productId}/reviews`);
+    const response = await apiFetch(`/api/products/${productId}/reviews`);
     if (!response.ok) {
       throw new Error('Failed to fetch reviews');
     }
@@ -20,7 +19,7 @@ export const reviewApi = {
     data: { rating: number; comment: string },
     token: string
   ): Promise<ApiReview> {
-    const response = await fetch(`${API_BASE_URL}/api/products/${productId}/reviews`, {
+    const response = await apiFetch(`/api/products/${productId}/reviews`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -41,7 +40,7 @@ export const reviewApi = {
     data: { rating: number; comment: string },
     token: string
   ): Promise<ApiReview> {
-    const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}`, {
+    const response = await apiFetch(`/api/reviews/${reviewId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ export const reviewApi = {
 
   // レビューを削除（認証必要）
   async deleteReview(reviewId: number, token: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/api/reviews/${reviewId}`, {
+    const response = await apiFetch(`/api/reviews/${reviewId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,

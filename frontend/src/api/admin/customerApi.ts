@@ -1,8 +1,7 @@
 // カスタマー管理関連のAPI
 
 import { ManagedCustomer } from './customerTypes';
-
-import { API_BASE_URL as API_BASE } from '../config';
+import { apiFetch } from '../config';
 
 const STATUS_MAP: Record<number, ManagedCustomer['status']> = {
   0: 'active',
@@ -20,7 +19,7 @@ function toManagedCustomer(data: Record<string, unknown>): ManagedCustomer {
 export const adminApi = {
   // カスタマー一覧を取得
   async getCustomers(token: string): Promise<ManagedCustomer[]> {
-    const response = await fetch(`${API_BASE}/api/admin/customers`, {
+    const response = await apiFetch('/api/admin/customers', {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error('Failed to fetch customers');
@@ -30,7 +29,7 @@ export const adminApi = {
 
   // カスタマーをBANする
   async banCustomer(customerId: number, reason: string, token: string): Promise<ManagedCustomer> {
-    const response = await fetch(`${API_BASE}/api/admin/customers/${customerId}/ban`, {
+    const response = await apiFetch(`/api/admin/customers/${customerId}/ban`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -44,7 +43,7 @@ export const adminApi = {
 
   // カスタマーを一時停止する
   async suspendCustomer(customerId: number, duration: number, reason: string, token: string): Promise<ManagedCustomer> {
-    const response = await fetch(`${API_BASE}/api/admin/customers/${customerId}/suspend`, {
+    const response = await apiFetch(`/api/admin/customers/${customerId}/suspend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ export const adminApi = {
 
   // カスタマーのBAN/停止を解除する
   async unbanCustomer(customerId: number, token: string): Promise<ManagedCustomer> {
-    const response = await fetch(`${API_BASE}/api/admin/customers/${customerId}/unban`, {
+    const response = await apiFetch(`/api/admin/customers/${customerId}/unban`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
     });

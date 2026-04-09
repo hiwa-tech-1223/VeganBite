@@ -1,11 +1,11 @@
 // カスタマー関連のAPI
 
-import { API_BASE_URL } from '../config';
+import { apiFetch } from '../config';
 
 export const customerApi = {
   // カスタマーのお気に入り一覧を取得
   async getFavorites(customerId: number, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/customers/${customerId}/favorites`, {
+    const response = await apiFetch(`/api/customers/${customerId}/favorites`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -18,7 +18,7 @@ export const customerApi = {
 
   // お気に入りに追加
   async addFavorite(customerId: number, productId: number, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/customers/${customerId}/favorites`, {
+    const response = await apiFetch(`/api/customers/${customerId}/favorites`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -34,7 +34,7 @@ export const customerApi = {
 
   // お気に入りから削除
   async removeFavorite(customerId: number, productId: number, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/customers/${customerId}/favorites/${productId}`, {
+    const response = await apiFetch(`/api/customers/${customerId}/favorites/${productId}`, {
       method: 'DELETE',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -47,7 +47,7 @@ export const customerApi = {
 
   // カスタマーのレビュー一覧を取得
   async getReviews(customerId: number, token: string) {
-    const response = await fetch(`${API_BASE_URL}/api/customers/${customerId}/reviews`, {
+    const response = await apiFetch(`/api/customers/${customerId}/reviews`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

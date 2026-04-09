@@ -1,13 +1,12 @@
 // 商品関連のAPI
 
 import { ApiCategory, ApiProduct } from './productTypes';
-
-import { API_BASE_URL } from '../config';
+import { apiFetch } from '../config';
 
 export const productApi = {
   // カテゴリ一覧を取得
   async getCategories(): Promise<ApiCategory[]> {
-    const response = await fetch(`${API_BASE_URL}/api/categories`);
+    const response = await apiFetch('/api/categories');
     if (!response.ok) {
       throw new Error('Failed to fetch categories');
     }
@@ -25,9 +24,9 @@ export const productApi = {
     }
 
     const queryString = searchParams.toString();
-    const url = `${API_BASE_URL}/api/products${queryString ? `?${queryString}` : ''}`;
+    const url = `/api/products${queryString ? `?${queryString}` : ''}`;
 
-    const response = await fetch(url);
+    const response = await apiFetch(url);
     if (!response.ok) {
       throw new Error('Failed to fetch products');
     }
@@ -36,7 +35,7 @@ export const productApi = {
 
   // 商品詳細を取得
   async getProduct(id: number): Promise<ApiProduct> {
-    const response = await fetch(`${API_BASE_URL}/api/products/${id}`);
+    const response = await apiFetch(`/api/products/${id}`);
     if (!response.ok) {
       throw new Error('Failed to fetch product');
     }
