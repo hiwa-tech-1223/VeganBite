@@ -172,6 +172,21 @@ resource "aws_lambda_function_url" "image_optimization" {
   authorization_type = "NONE"
 }
 
+resource "aws_lambda_permission" "image_optimization_public_url" {
+  statement_id           = "AllowPublicInvokeFunctionUrl"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.image_optimization.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
+}
+
+resource "aws_lambda_permission" "image_optimization_public_invoke" {
+  statement_id  = "AllowPublicInvokeFunction"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.image_optimization.function_name
+  principal     = "*"
+}
+
 # Outputs
 output "function_url" {
   value = aws_lambda_function_url.frontend.function_url
