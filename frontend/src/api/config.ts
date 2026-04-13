@@ -1,14 +1,10 @@
 import { invokeBackendApi } from './lambda-client';
 
-// サーバーサイド（SSR）ではLambda SDK経由、クライアントサイドではfetchを使用
 const isServer = typeof window === 'undefined';
-
-// クライアントサイド用のベースURL（CloudFront経由で自身のAPI Routeに到達）
-export const API_BASE_URL = '';
 
 // サーバーサイド・クライアントサイド共通のfetch関数
 export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
-  // サーバーサイド: AWS SDK経由でGo Lambdaを直接呼び出し
+  // AWS環境: Lambda SDK経由でGo Lambdaを直接呼び出し
   if (isServer && process.env.BACKEND_FUNCTION_NAME) {
     const headers: Record<string, string> = {};
     if (options?.headers) {
@@ -27,6 +23,15 @@ export async function apiFetch(path: string, options?: RequestInit): Promise<Res
     );
   }
 
-  // クライアントサイド: 通常のfetch（CloudFront → Next.js API Route → Go Lambda）
-  return fetch(path, options);
+  // ローカル開発環境: Go APIに直接リクエスト
+  const baseUrl = isServer
+    ? process.env.API_URL_INTERNAL || 'http://localhost:8080'
+    : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+  return fetch(`${baseUrl}${path}`, options);
 }
+
+// クライアントサイド用のベースURL（後方互換性のため残す）
+export const API_BASE_URL = isServer
+  ? process.env.API_URL_INTERNAL || 'http://localhost:8080'
+  : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';

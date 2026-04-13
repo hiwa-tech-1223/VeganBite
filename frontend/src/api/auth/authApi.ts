@@ -1,6 +1,6 @@
 // 認証関連のAPI
 
-import { apiFetch } from '../config';
+import { apiFetch, API_BASE_URL } from '../config';
 
 export const authApi = {
   // 現在のユーザー情報を取得
@@ -36,11 +36,11 @@ export const authApi = {
 
   // Google OAuth URLを取得
   getGoogleLoginUrl(): string {
-    return '/api/auth/google';
+    return `${API_BASE_URL}/api/auth/google`;
   },
 
   // 管理者用Google OAuth URLを取得
   getAdminGoogleLoginUrl(): string {
-    return '/api/auth/admin/google';
+    return `${API_BASE_URL}/api/auth/admin/google`;
   },
 };
