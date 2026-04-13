@@ -10,8 +10,8 @@
 
 ## 🌐 Live Site
 
-- **サイト**: https://veganbite.onrender.com/
-- **管理画面**: https://veganbite.onrender.com/admin
+- **サイト**: https://dq02ue4hf290k.cloudfront.net
+- **管理画面**: https://dq02ue4hf290k.cloudfront.net/admin
 
 ## 🎬 Demo
 
@@ -30,11 +30,10 @@
 ## Tech Stack
 
 ### Frontend
+- Next.js 15 (App Router)
 - React 19 + TypeScript 5.9
-- Vite 7
 - Tailwind CSS v4
-- shadcn/ui components
-- React Router v7
+- Jest + Testing Library
 
 ### Backend
 - Go 1.25
@@ -44,7 +43,35 @@
 - Google OAuth 2.0 + JWT
 
 ### Infrastructure
-- Docker & Docker Compose
+- AWS Lambda (Go API + Next.js SSR)
+- Amazon CloudFront (CDN)
+- Amazon S3 (静的アセット)
+- Amazon RDS (PostgreSQL)
+- Amazon VPC (プライベートネットワーク)
+- Terraform (Infrastructure as Code)
+- GitHub Actions (CI/CD)
+- Docker & Docker Compose (ローカル開発)
+
+## AWS Architecture
+
+![AWS Architecture](docs/architecture.png)
+
+### セキュリティ
+
+- **S3**: OAC（Origin Access Control）で保護。CloudFront経由のみアクセス可
+- **Go Lambda**: Function URL を AWS_IAM 認証で保護。Next.js Lambda からのみ呼び出し可
+- **RDS**: プライベートサブネットに配置。Go Lambda のセキュリティグループからのみ接続可
+- **外部からGoのAPIへの直接アクセスは不可**。全てNext.js Lambdaを経由
+
+## CI/CD
+
+### PRを出したとき（ci.yml）
+- フロントエンド: ESLint + TypeScript型チェック + Jest テスト
+- バックエンド: golangci-lint + Go テスト
+
+### mainにマージしたとき（deploy.yml）
+- フロントエンド: OpenNext ビルド → S3に静的ファイルアップロード → Lambda更新 → CloudFrontキャッシュクリア
+- バックエンド: Go ビルド → Lambda更新
 
 ## Architecture
 
@@ -73,7 +100,7 @@ interfaces/     → usecase/     → domain/
 1. Clone the repository
 ```bash
 git clone <repository-url>
-cd vegan-review-app
+cd VeganBite
 ```
 
 2. Copy environment file and configure
@@ -86,7 +113,7 @@ Edit `.env` with your Google OAuth credentials:
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 JWT_SECRET=your-jwt-secret-key
-DB_SSLMODE=disable  # 本番環境では require または verify-full を推奨
+DB_SSLMODE=disable
 ```
 
 3. Build and start containers
@@ -101,9 +128,9 @@ docker compose exec backend migrate -path ./migrations -database "postgres://pos
 ```
 
 5. Access the application
-- Frontend: http://localhost:5173
+- Frontend: http://localhost:3000
 - Backend API: http://localhost:8080
-- Admin: http://localhost:5173/admin/login
+- Admin: http://localhost:3000/admin/login
 
 ### Google OAuth Setup
 
@@ -119,22 +146,31 @@ docker compose exec backend migrate -path ./migrations -database "postgres://pos
 
 ```
 VeganBite/
-├── frontend/                 # React frontend
+├── frontend/                 # Next.js frontend
 │   ├── src/
 │   │   ├── api/             # API client functions
 │   │   │   ├── admin/       # Admin API calls
 │   │   │   ├── auth/        # Auth API calls
-│   │   │   └── customer/    # Customer API calls
-│   │   ├── components/      # Shared UI components
-│   │   │   ├── common/      # Common components
-│   │   │   └── ui/          # shadcn/ui components
-│   │   ├── pages/           # Page components
+│   │   │   ├── customer/    # Customer API calls
+│   │   │   ├── config.ts    # API設定（SSR/CSR振り分け）
+│   │   │   └── lambda-client.ts  # AWS SDK Lambda呼び出し
+│   │   ├── app/             # Next.js App Router pages
 │   │   │   ├── admin/       # Admin pages
-│   │   │   └── customer/    # Customer pages
-│   │   └── App.tsx          # Main app with routing
+│   │   │   ├── auth/        # Auth callback
+│   │   │   ├── api/         # API Route（Go Lambdaへの中継）
+│   │   │   └── ...
+│   │   ├── components/      # UI components
+│   │   │   ├── admin/       # Admin components
+│   │   │   ├── auth/        # Auth guards
+│   │   │   ├── common/      # Shared components
+│   │   │   └── customer/    # Customer components
+│   │   └── contexts/        # React Context
+│   ├── open-next.config.ts  # OpenNext設定
 │   ├── Dockerfile
 │   └── package.json
 ├── backend/                  # Go backend (Clean Architecture)
+│   ├── cmd/lambda/          # Lambda用エントリポイント
+│   ├── server/              # Echo設定（共通）
 │   ├── config/              # Configuration
 │   ├── domain/              # Entities, Repository interfaces
 │   │   ├── admin/
@@ -154,19 +190,23 @@ VeganBite/
 │   │       ├── admin/
 │   │       └── customer/
 │   ├── migrations/          # SQL migrations
-│   ├── main.go
+│   ├── main.go              # ローカル開発用エントリポイント
 │   ├── Dockerfile
 │   └── go.mod
-├── docs/                    # Documentation
-│   └── DATABASE_SCHEMA.md   # DB設計・将来の拡張計画
+├── terraform/               # Infrastructure as Code
+│   ├── environments/dev/    # Dev環境設定
+│   └── modules/
+│       ├── vpc/             # VPC, サブネット, NAT Gateway
+│       ├── rds/             # PostgreSQL
+│       ├── lambda-backend/  # Go API Lambda
+│       ├── lambda-frontend/ # Next.js Lambda + S3
+│       └── cloudfront/      # CDN
+├── .github/workflows/       # CI/CD
+│   ├── ci.yml               # PR時のテスト
+│   └── deploy.yml           # mainマージ時のデプロイ
 ├── docker-compose.yml
-├── .env.example             # Environment template
 └── README.md
 ```
-
-## Documentation
-
-- [DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) - データベース設計、将来のEC拡張計画
 
 ## Database
 
@@ -179,9 +219,6 @@ VeganBite/
 - `product_categories` - 商品とカテゴリの中間テーブル
 - `reviews` - レビュー
 - `favorites` - お気に入り
-
-### Future Tables (EC拡張)
-詳細は [DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) を参照
 
 ## Pages
 
@@ -250,6 +287,11 @@ VeganBite/
 | POST | /api/customers/:id/favorites | Add favorite |
 | DELETE | /api/customers/:id/favorites/:productId | Remove favorite |
 | GET | /api/customers/:id/reviews | List customer reviews |
+
+### Migration (Manual)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | /api/migrate | Run database migrations (AWS Console only) |
 
 ## License
 
