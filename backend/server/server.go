@@ -15,13 +15,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gorm.io/driver/postgres"
-	"gorm.io/gorm"
 )
 
 func NewEcho(cfg *config.Config) (*echo.Echo, error) {
 	// Database connection
-	db, err := gorm.Open(postgres.Open(cfg.GetDSN()), &gorm.Config{})
+	db, err := openDB(cfg)
 	if err != nil {
 		return nil, err
 	}

@@ -5,17 +5,19 @@ import "os"
 // Config - アプリケーション設定
 type Config struct {
 	// Database
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
+	// DatabaseURL が設定されていればそれを優先し、未設定なら個別項目から DSN を組み立てる
+	DatabaseURL string
+	DBHost      string
+	DBPort      string
+	DBUser      string
+	DBPassword  string
+	DBName      string
+	DBSSLMode   string
 
 	// OAuth
-	GoogleClientID     string
-	GoogleClientSecret string
-	OAuthRedirectURL   string
+	GoogleClientID        string
+	GoogleClientSecret    string
+	OAuthRedirectURL      string
 	OAuthAdminRedirectURL string
 
 	// JWT
@@ -28,16 +30,17 @@ type Config struct {
 // Load - 設定を読み込む
 func Load() *Config {
 	return &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "postgres"),
-		DBName:     getEnv("DB_NAME", "veganbite"),
-		DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
+		DatabaseURL: os.Getenv("DATABASE_URL"),
+		DBHost:      getEnv("DB_HOST", "localhost"),
+		DBPort:      getEnv("DB_PORT", "5432"),
+		DBUser:      getEnv("DB_USER", "postgres"),
+		DBPassword:  getEnv("DB_PASSWORD", "postgres"),
+		DBName:      getEnv("DB_NAME", "veganbite"),
+		DBSSLMode:   getEnv("DB_SSLMODE", "disable"),
 
-		GoogleClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		OAuthRedirectURL:   getEnv("OAUTH_REDIRECT_URL", "http://localhost:8080/api/auth/google/callback"),
+		GoogleClientID:        os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:    os.Getenv("GOOGLE_CLIENT_SECRET"),
+		OAuthRedirectURL:      getEnv("OAUTH_REDIRECT_URL", "http://localhost:8080/api/auth/google/callback"),
 		OAuthAdminRedirectURL: getEnv("OAUTH_ADMIN_REDIRECT_URL", "http://localhost:8080/api/auth/admin/google/callback"),
 
 		JWTSecret:   getEnv("JWT_SECRET", "default-secret-change-me"),
@@ -46,7 +49,11 @@ func Load() *Config {
 }
 
 // GetDSN - データベース接続文字列を取得
+// DATABASE_URL（postgres://... 形式）があればそのまま返し、なければ key=value 形式で組み立てる
 func (c *Config) GetDSN() string {
+	if c.DatabaseURL != "" {
+		return c.DatabaseURL
+	}
 	return "host=" + c.DBHost +
 		" user=" + c.DBUser +
 		" password=" + c.DBPassword +
