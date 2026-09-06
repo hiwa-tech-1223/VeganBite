@@ -50,7 +50,7 @@ func (r *customerRepository) FindAllWithReviewCount() ([]customer.Customer, map[
 	reviewCounts := make(map[int64]int, len(rows))
 	for i, r := range rows {
 		customers[i] = r.Customer
-		reviewCounts[r.Customer.ID] = r.ReviewCount
+		reviewCounts[r.ID] = r.ReviewCount
 	}
 	return customers, reviewCounts, nil
 }
