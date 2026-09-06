@@ -1,139 +1,73 @@
 name: Deploy
 
+# main へのマージで Go API を Cloud Run にデプロイする。
+# フロントエンド（Next.js）は Vercel の GitHub 連携が main の push を検知して自動デプロイするため、ここでは扱わない。
 on:
   push:
     branches:
       - main
 
 env:
-  AWS_REGION: ap-northeast-1
+  PROJECT_ID: veganbite
+  REGION: asia-southeast1
+  SERVICE: veganbite-dev-api
+  IMAGE: asia-southeast1-docker.pkg.dev/veganbite/veganbite-dev/api
+  # Terraform（infra/environments/dev/cicd.tf）で作成した Workload Identity Federation。秘密情報ではない
+  WORKLOAD_IDENTITY_PROVIDER: projects/164814249326/locations/global/workloadIdentityPools/github/providers/github-actions
+  DEPLOYER_SERVICE_ACCOUNT: veganbite-dev-deployer@veganbite.iam.gserviceaccount.com
 
 jobs:
-  # フロントエンド: Next.js ビルド → Lambda + S3 にデプロイ
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build with OpenNext
-        run: npm run build:aws
-        env:
-          NEXT_PUBLIC_API_URL: ${{ secrets.CLOUDFRONT_URL }}
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      # 静的ファイルをS3にアップロード
-      - name: Upload static assets to S3
-        run: aws s3 sync .open-next/assets s3://${{ secrets.S3_BUCKET_NAME }} --delete
-
-      # SSR用Lambda関数を更新
-      - name: Deploy SSR function
-        run: |
-          cd .open-next/server-functions/default
-          node -e "const p=require('./package.json'); p.type='module'; require('fs').writeFileSync('package.json',JSON.stringify(p,null,2))"
-          zip -r /tmp/frontend.zip .
-          aws lambda update-function-code \
-            --function-name veganbite-dev-frontend \
-            --zip-file fileb:///tmp/frontend.zip
-
-      # 画像最適化用Lambda関数を更新
-      - name: Deploy image optimization function
-        run: |
-          cd .open-next/image-optimization-function
-          echo '{"type":"module"}' > package.json
-          zip -r /tmp/image-optimization.zip .
-          aws lambda update-function-code \
-            --function-name veganbite-dev-image-optimization \
-            --zip-file fileb:///tmp/image-optimization.zip
-
-      # CloudFrontのキャッシュをクリア
-      - name: Invalidate CloudFront cache
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
-
-  # バックエンド: Go ビルド → Lambda にデプロイ
   deploy-backend:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC トークンの発行に必要
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v5
+      # 長期鍵を持たず、GitHub の OIDC トークンを GCP の短期認証情報に交換する
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
         with:
-          go-version-file: backend/go.mod
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SERVICE_ACCOUNT }}
 
-      - name: Build Lambda binary
-        run: GOOS=linux GOARCH=arm64 go build -o bootstrap ./cmd/lambda
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          docker build \
+            -t "${IMAGE}:${GITHUB_SHA::7}" \
+            -t "${IMAGE}:latest" \
+            backend
+          docker push --all-tags "${IMAGE}"
+
+      # マイグレーションは Neon の direct 接続で実行する（pooled は advisory lock を使う golang-migrate と相性が悪い）
+      - name: Run database migrations
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}/backend/migrations:/migrations" \
+            migrate/migrate:v4.19.1 \
+            -path=/migrations \
+            -database "${NEON_DATABASE_URL_DIRECT}" \
+            up
         env:
-          CGO_ENABLED: '0'
+          NEON_DATABASE_URL_DIRECT: ${{ secrets.NEON_DATABASE_URL_DIRECT }}
 
-      - name: Package Lambda function
-        run: zip -r /tmp/backend.zip bootstrap migrations/
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Deploy backend function
+      # イメージの更新は CI/CD の責務。Terraform 側は image を ignore_changes にしている
+      - name: Deploy to Cloud Run
         run: |
-          aws lambda update-function-code \
-            --function-name veganbite-dev-backend \
-            --zip-file fileb:///tmp/backend.zip
+          gcloud run deploy "${SERVICE}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --image "${IMAGE}:${GITHUB_SHA::7}" \
+            --quiet
 
-  # テスト: PRとpush時に実行
-  test:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-      - uses: actions/checkout@v4
-
-      # フロントエンドのテスト
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Frontend - Install & Test
-        working-directory: frontend
+      - name: Smoke test
         run: |
-          npm ci
-          npm run lint
-          npm run check-types
-          npm run test:run
-
-      # バックエンドのテスト
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: backend/go.mod
-
-      - name: Backend - Test
-        working-directory: backend
-        run: go test ./...
+          URL=$(gcloud run services describe "${SERVICE}" --project "${PROJECT_ID}" --region "${REGION}" --format 'value(status.url)')
+          curl --fail --silent --show-error "${URL}/api/health"

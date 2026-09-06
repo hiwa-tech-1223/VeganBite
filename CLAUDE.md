@@ -44,12 +44,9 @@ internal/
 - 構造体のフィールドやメソッドの可視性を意識する（公開/非公開）
 
 ### TypeScript/React（フロントエンド）
-- any型はなるべく使わないこと
+- any型は使わないこと
 - 関数の引数や戻り値の型は明示的に指定すること
 - フォームでは非制御コンポーネント（react-hook-formなど）を使用すること
-
-### データアクセス
-- factoryIdが付与されているテーブルを検索する際は必ずfactoryIdを条件に含めること
 
 ### デザイン関係
 - アイコンはMaterial Symbolsを使用（className={`material-symbols-...`}）
