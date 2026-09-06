@@ -70,7 +70,7 @@ Terraform の定義は [infra/](infra/) にあります。Vercel のプロジェ
 - **Go API は Vercel の中継ルート経由で呼ぶ**: ブラウザからは同一オリジンの `/api/*` に投げ、Next.js の Route Handler が Cloud Run に転送する。CORS 設定が不要で、バックエンドの URL もブラウザに露出しない
 - **秘密情報は Secret Manager から注入**: 実行用サービスアカウントには secret 単位で参照権限を付与。秘密でない値（クライアント ID、フロント URL）は平文の環境変数
 - **CI/CD は長期鍵を持たない**: GitHub Actions は Workload Identity Federation でデプロイ用サービスアカウントになりすます。信頼するのはこのリポジトリからの OIDC トークンのみ
-- **DB は公開エンドポイントだが、暗号化と最小権限で守る**: 接続は TLS 必須で、サーバー証明書も検証する（`sslmode=verify-full`）。アプリはデータの読み書きだけができる専用ロールで接続し、テーブル定義の変更や削除はできない。DDL を持つオーナーロールはマイグレーション専用
+- **DB は公開エンドポイントだが、暗号化と最小権限で守る**: DB をプライベートネットワークに閉じ込めるには VPC コネクタや NAT（GCP 側）、IP 制限（Neon の有料プラン）が必要で、いずれも「常時課金なし」の方針と両立しない。そのため公開エンドポイントを前提に、接続は TLS 必須かつサーバー証明書も検証し（`sslmode=verify-full`）、アプリはデータの読み書きだけができる専用ロールで接続してテーブル定義の変更や削除はできないようにしている。DDL を持つオーナーロールはマイグレーション専用
 - **マイグレーションは direct 接続**: アプリは pooled（PgBouncer）接続を使うが、golang-migrate は advisory lock を使うため direct 接続で実行する
 - **使わないもの**: Cloud SQL / VPC / NAT / Load Balancer。いずれも存在するだけで固定費が発生するため
 
