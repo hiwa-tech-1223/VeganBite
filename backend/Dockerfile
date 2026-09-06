@@ -1,22 +1,28 @@
-FROM golang:1.25-alpine
+# 本番用（Cloud Run）イメージ
+# 開発用ホットリロード環境は Dockerfile.dev を参照
+
+# --- ビルドステージ ---
+FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
-
-# Install dependencies for hot reload
-RUN go install github.com/air-verse/air@v1.52.3
-
-# Install migrate tool
-RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.17.0
-
-# Install golangci-lint
-RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
 
+# 静的リンクした単一バイナリを生成（distroless/static で動かすため CGO 無効）
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /server ./cmd/server
+
+# --- 実行ステージ ---
+# distroless/static は CA 証明書と tzdata を含むため、Neon（TLS）や Google OAuth への接続に追加設定不要
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=builder /server /server
+
+ENV PORT=8080
 EXPOSE 8080
 
-# Use air for hot reload during development
-CMD ["air", "-c", ".air.toml"]
+USER nonroot:nonroot
+
+ENTRYPOINT ["/server"]
