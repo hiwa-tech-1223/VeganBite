@@ -66,17 +66,22 @@ func (s *OAuthService) ExchangeAdmin(ctx context.Context, code string) (*oauth2.
 }
 
 // GetUserInfo - Googleからユーザー情報を取得
-func (s *OAuthService) GetUserInfo(accessToken string) (*GoogleUserInfo, error) {
+func (s *OAuthService) GetUserInfo(accessToken string) (userInfo *GoogleUserInfo, err error) {
 	resp, err := http.Get("https://www.googleapis.com/oauth2/v2/userinfo?access_token=" + accessToken)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	// Body の Close 失敗も握りつぶさず呼び出し元へ返す
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil && err == nil {
+			err = closeErr
+		}
+	}()
 
-	var userInfo GoogleUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+	var info GoogleUserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
 		return nil, err
 	}
 
-	return &userInfo, nil
+	return &info, nil
 }
