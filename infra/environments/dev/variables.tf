@@ -22,3 +22,15 @@ variable "api_image" {
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
+
+variable "google_client_id" {
+  description = "Google OAuth クライアント ID（秘密ではない。同一プロジェクト内の OAuth クライアント）"
+  type        = string
+  default     = "164814249326-u2jud0v1o6323a8n9tuhj4ihqs78m440.apps.googleusercontent.com"
+}
+
+variable "google_client_secret" {
+  description = "Google OAuth クライアントシークレット。terraform.tfvars（gitignore 対象）で渡す"
+  type        = string
+  sensitive   = true
+}

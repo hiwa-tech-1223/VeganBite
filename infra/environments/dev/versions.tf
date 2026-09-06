@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 8.1"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.7"
+    }
   }
 
   # state バケットは Terraform 管理外（infra/README.md 参照）
