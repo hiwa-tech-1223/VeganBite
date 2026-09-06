@@ -89,7 +89,6 @@ func NewEcho(cfg *config.Config) (*echo.Echo, error) {
 
 	// Public routes
 	e.GET("/api/health", handler.HealthCheck)
-	e.GET("/api/migrate", handler.MigrateHandler())
 
 	// Auth routes (public)
 	e.GET("/api/auth/google", authHandler.HandleGoogleLogin)
