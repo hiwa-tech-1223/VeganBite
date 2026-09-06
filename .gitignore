@@ -40,7 +40,6 @@ bin/
 
 # Terraform
 **/.terraform/
-terraform/modules/*/dummy.zip
 *.tfstate
 *.tfstate.backup
 *.tfvars
