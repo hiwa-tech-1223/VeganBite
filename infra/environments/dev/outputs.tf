@@ -18,3 +18,8 @@ output "neon_direct_connection_uri" {
   value       = module.db.direct_connection_uri
   sensitive   = true
 }
+
+output "frontend_url" {
+  description = "フロントエンド（Vercel）の既定ドメイン"
+  value       = local.frontend_url
+}

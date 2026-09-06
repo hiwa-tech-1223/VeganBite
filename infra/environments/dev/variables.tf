@@ -42,7 +42,19 @@ variable "neon_org_id" {
 }
 
 variable "frontend_url" {
-  description = "フロントエンド（Vercel）の公開 URL。OAuth のリダイレクト先に使う。未確定の間は空文字"
+  description = "フロントエンド（Vercel）の公開 URL の上書き。空なら https://<project name>.vercel.app を使う"
   type        = string
   default     = ""
+}
+
+variable "github_repository" {
+  description = "Vercel の Git 連携先リポジトリ（owner/repo）"
+  type        = string
+  default     = "hiwa-tech-1223/VeganBite"
+}
+
+variable "vercel_team" {
+  description = "Vercel のチーム slug または ID。Hobby アカウントも内部的にはチーム扱い（秘密情報ではない）"
+  type        = string
+  default     = "team_L08MP8E0fQDJGhgkMdMDBL1t"
 }

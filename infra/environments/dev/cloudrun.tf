@@ -9,17 +9,13 @@ module "api" {
   image                 = var.api_image
   max_instances         = 2
 
-  # 秘密でない設定は平文の環境変数で渡す。FRONTEND_URL は Vercel の URL 確定後に設定する
-  env = merge(
-    {
-      GOOGLE_CLIENT_ID = var.google_client_id
-    },
-    var.frontend_url == "" ? {} : {
-      FRONTEND_URL             = var.frontend_url
-      OAUTH_REDIRECT_URL       = "${var.frontend_url}/api/auth/google/callback"
-      OAUTH_ADMIN_REDIRECT_URL = "${var.frontend_url}/api/auth/admin/google/callback"
-    },
-  )
+  # 秘密でない設定は平文の環境変数で渡す。OAuth のコールバックは Next.js の中継ルート経由
+  env = {
+    GOOGLE_CLIENT_ID         = var.google_client_id
+    FRONTEND_URL             = local.frontend_url
+    OAUTH_REDIRECT_URL       = "${local.frontend_url}/api/auth/google/callback"
+    OAUTH_ADMIN_REDIRECT_URL = "${local.frontend_url}/api/auth/admin/google/callback"
+  }
 
   # 秘密は Secret Manager から注入（実行用 SA に secret 単位の参照権限を付与済み）
   secret_env = {

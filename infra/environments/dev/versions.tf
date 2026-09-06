@@ -15,6 +15,10 @@ terraform {
       source  = "kislerdm/neon"
       version = "= 0.15.0"
     }
+    vercel = {
+      source  = "vercel/vercel"
+      version = "~> 5.15"
+    }
   }
 
   # state バケットは Terraform 管理外（infra/README.md 参照）
