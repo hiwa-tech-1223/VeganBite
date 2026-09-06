@@ -19,6 +19,11 @@ terraform {
       source  = "vercel/vercel"
       version = "~> 5.15"
     }
+    # DB ロールと権限の管理（Neon の API で作るロールは権限が広すぎるため SQL で作る）
+    postgresql = {
+      source  = "cyrilgdn/postgresql"
+      version = "~> 1.27"
+    }
   }
 
   # state バケットは Terraform 管理外（infra/README.md 参照）

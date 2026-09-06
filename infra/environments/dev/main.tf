@@ -11,6 +11,8 @@ resource "google_project_service" "apis" {
     "run.googleapis.com",
     "artifactregistry.googleapis.com",
     "secretmanager.googleapis.com",
+    "iamcredentials.googleapis.com", # Workload Identity Federation（GitHub Actions からの鍵レス認証）
+    "sts.googleapis.com",            # 同上
   ])
 
   project            = var.project_id

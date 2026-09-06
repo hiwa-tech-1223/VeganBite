@@ -10,8 +10,10 @@
 
 ## 🌐 Live Site
 
-- **サイト**: https://dq02ue4hf290k.cloudfront.net
-- **管理画面**: https://dq02ue4hf290k.cloudfront.net/admin
+- **サイト**: https://veganbite-dev.vercel.app
+- **管理画面**: https://veganbite-dev.vercel.app/admin
+
+アクセスがほぼ無い前提の構成のため、アイドル後の初回アクセスは Cloud Run と Neon の復帰で数秒かかることがあります。
 
 ## 🎬 Demo
 
@@ -43,25 +45,34 @@
 - Google OAuth 2.0 + JWT
 
 ### Infrastructure
-- AWS Lambda (Go API + Next.js SSR)
-- Amazon CloudFront (CDN)
-- Amazon S3 (静的アセット)
-- Amazon RDS (PostgreSQL)
-- Amazon VPC (プライベートネットワーク)
-- Terraform (Infrastructure as Code)
-- GitHub Actions (CI/CD)
+- Vercel (Next.js SSR、Hobby プラン)
+- Google Cloud Run (Go API、scale-to-zero)
+- Neon (サーバーレス PostgreSQL、scale-to-zero)
+- Google Secret Manager / Artifact Registry
+- Terraform (google / neon / vercel の 3 プロバイダをまとめて管理)
+- GitHub Actions (CI/CD、Workload Identity Federation による鍵レス認証)
 - Docker & Docker Compose (ローカル開発)
 
-## AWS Architecture
+## Infrastructure Architecture
 
-![AWS Architecture](docs/architecture.png)
+月額ほぼ $0 を最優先に、「常時課金されるリソースを置かない」ことを原則にしたマルチクラウド構成です。
+すべてのコンピュートと DB がアイドル時にゼロまでスケールダウンし、リクエストが来たときだけ動きます。
 
-### セキュリティ
+![Infrastructure Architecture](docs/architecture.png)
 
-- **S3**: OAC（Origin Access Control）で保護。CloudFront経由のみアクセス可
-- **Go Lambda**: Function URL を AWS_IAM 認証で保護。Next.js Lambda からのみ呼び出し可
-- **RDS**: プライベートサブネットに配置。Go Lambda のセキュリティグループからのみ接続可
-- **外部からGoのAPIへの直接アクセスは不可**。全てNext.js Lambdaを経由
+（図のソースは [docs/architecture.mmd](docs/architecture.mmd)。再生成の手順は [infra/README.md](infra/README.md)）
+
+Terraform の定義は [infra/](infra/) にあります。Vercel のプロジェクト、Cloud Run、Secret Manager、Neon のプロジェクトまでを 1 つの state で管理しています。
+
+### 設計上のポイント
+
+- **scale-to-zero を徹底**: Cloud Run は `min_instance_count = 0` かつ CPU はリクエスト処理中のみ割り当て。Neon は Free プランのため常にサスペンド対象。DB への keep-alive や定期 ping は実装しない
+- **Go API は Vercel の中継ルート経由で呼ぶ**: ブラウザからは同一オリジンの `/api/*` に投げ、Next.js の Route Handler が Cloud Run に転送する。CORS 設定が不要で、バックエンドの URL もブラウザに露出しない
+- **秘密情報は Secret Manager から注入**: 実行用サービスアカウントには secret 単位で参照権限を付与。秘密でない値（クライアント ID、フロント URL）は平文の環境変数
+- **CI/CD は長期鍵を持たない**: GitHub Actions は Workload Identity Federation でデプロイ用サービスアカウントになりすます。信頼するのはこのリポジトリからの OIDC トークンのみ
+- **DB は公開エンドポイントだが、暗号化と最小権限で守る**: DB をプライベートネットワークに閉じ込めるには VPC コネクタや NAT（GCP 側）、IP 制限（Neon の有料プラン）が必要で、いずれも「常時課金なし」の方針と両立しない。そのため公開エンドポイントを前提に、接続は TLS 必須かつサーバー証明書も検証し（`sslmode=verify-full`）、アプリはデータの読み書きだけができる専用ロールで接続してテーブル定義の変更や削除はできないようにしている。DDL を持つオーナーロールはマイグレーション専用
+- **マイグレーションは direct 接続**: アプリは pooled（PgBouncer）接続を使うが、golang-migrate は advisory lock を使うため direct 接続で実行する
+- **使わないもの**: Cloud SQL / VPC / NAT / Load Balancer。いずれも存在するだけで固定費が発生するため
 
 ## CI/CD
 
@@ -69,9 +80,12 @@
 - フロントエンド: ESLint + TypeScript型チェック + Jest テスト
 - バックエンド: golangci-lint + Go テスト
 
-### mainにマージしたとき（deploy.yml）
-- フロントエンド: OpenNext ビルド → S3に静的ファイルアップロード → Lambda更新 → CloudFrontキャッシュクリア
-- バックエンド: Go ビルド → Lambda更新
+### mainにマージしたとき
+- フロントエンド: Vercel の GitHub 連携が自動でビルド・デプロイ（ワークフロー不要）
+- バックエンド（deploy.yml）: Docker ビルド → Artifact Registry に push → Neon へマイグレーション → Cloud Run にデプロイ → ヘルスチェック
+
+### 依存関係の更新
+- Dependabot が Go / npm / Docker ベースイメージ / GitHub Actions / Terraform provider を週次で確認
 
 ## Architecture
 
@@ -152,12 +166,11 @@ VeganBite/
 │   │   │   ├── admin/       # Admin API calls
 │   │   │   ├── auth/        # Auth API calls
 │   │   │   ├── customer/    # Customer API calls
-│   │   │   ├── config.ts    # API設定（SSR/CSR振り分け）
-│   │   │   └── lambda-client.ts  # AWS SDK Lambda呼び出し
+│   │   │   └── config.ts    # API設定（SSR は Cloud Run 直接、CSR は同一オリジン中継）
 │   │   ├── app/             # Next.js App Router pages
 │   │   │   ├── admin/       # Admin pages
 │   │   │   ├── auth/        # Auth callback
-│   │   │   ├── api/         # API Route（Go Lambdaへの中継）
+│   │   │   ├── api/         # API Route（Go API への中継）
 │   │   │   └── ...
 │   │   ├── components/      # UI components
 │   │   │   ├── admin/       # Admin components
@@ -165,12 +178,11 @@ VeganBite/
 │   │   │   ├── common/      # Shared components
 │   │   │   └── customer/    # Customer components
 │   │   └── contexts/        # React Context
-│   ├── open-next.config.ts  # OpenNext設定
-│   ├── Dockerfile
+│   ├── Dockerfile           # ローカル開発用
 │   └── package.json
 ├── backend/                  # Go backend (Clean Architecture)
-│   ├── cmd/lambda/          # Lambda用エントリポイント
-│   ├── server/              # Echo設定（共通）
+│   ├── cmd/server/          # エントリポイント（PORT 環境変数で待ち受け）
+│   ├── server/              # Echo の組み立て（DI・ルーティング・DB 接続）
 │   ├── config/              # Configuration
 │   ├── domain/              # Entities, Repository interfaces
 │   │   ├── admin/
@@ -190,20 +202,19 @@ VeganBite/
 │   │       ├── admin/
 │   │       └── customer/
 │   ├── migrations/          # SQL migrations
-│   ├── main.go              # ローカル開発用エントリポイント
-│   ├── Dockerfile
+│   ├── Dockerfile           # 本番用（マルチステージ → distroless）
+│   ├── Dockerfile.dev       # ローカル開発用（air ホットリロード）
 │   └── go.mod
-├── terraform/               # Infrastructure as Code
-│   ├── environments/dev/    # Dev環境設定
+├── infra/                   # Infrastructure as Code (Terraform)
+│   ├── environments/dev/    # dev 環境（Cloud Run, Secret Manager, WIF, Neon, Vercel）
 │   └── modules/
-│       ├── vpc/             # VPC, サブネット, NAT Gateway
-│       ├── rds/             # PostgreSQL
-│       ├── lambda-backend/  # Go API Lambda
-│       ├── lambda-frontend/ # Next.js Lambda + S3
-│       └── cloudfront/      # CDN
-├── .github/workflows/       # CI/CD
-│   ├── ci.yml               # PR時のテスト
-│   └── deploy.yml           # mainマージ時のデプロイ
+│       ├── cloudrun-service/ # Cloud Run サービス（scale-to-zero 固定）
+│       └── neon-database/   # Neon プロジェクト・DB・ロール
+├── .github/
+│   ├── workflows/
+│   │   ├── ci.yml           # PR時のテスト
+│   │   └── deploy.yml       # mainマージ時の Cloud Run デプロイ
+│   └── dependabot.yml       # 依存関係の週次チェック
 ├── docker-compose.yml
 └── README.md
 ```
@@ -287,11 +298,6 @@ VeganBite/
 | POST | /api/customers/:id/favorites | Add favorite |
 | DELETE | /api/customers/:id/favorites/:productId | Remove favorite |
 | GET | /api/customers/:id/reviews | List customer reviews |
-
-### Migration (Manual)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/migrate | Run database migrations (AWS Console only) |
 
 ## License
 
