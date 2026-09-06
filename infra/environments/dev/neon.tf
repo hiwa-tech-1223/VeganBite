@@ -11,8 +11,9 @@ module "db" {
   role_name     = "veganbite"
 }
 
-# pooled 接続文字列を Secret Manager に流し込み、Cloud Run へ DATABASE_URL として注入する
+# アプリ用ロール（DML のみ）の pooled 接続文字列を Secret Manager に流し込み、Cloud Run へ DATABASE_URL として注入する
+# sslmode=verify-full でサーバー証明書も検証する（distroless/static は CA 証明書を含む）
 resource "google_secret_manager_secret_version" "database_url" {
   secret      = google_secret_manager_secret.app["database_url"].id
-  secret_data = module.db.pooled_connection_uri
+  secret_data = local.app_database_url
 }

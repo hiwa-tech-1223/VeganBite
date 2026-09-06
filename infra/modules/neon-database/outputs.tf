@@ -25,3 +25,14 @@ output "database_name" {
 output "role_name" {
   value = neon_project.this.database_user
 }
+
+output "direct_host" {
+  description = "direct エンドポイントのホスト名（DB ロール管理など、pooled を使えない用途向け）"
+  value       = neon_project.this.database_host
+}
+
+output "role_password" {
+  description = "オーナーロールのパスワード"
+  value       = neon_project.this.database_password
+  sensitive   = true
+}

@@ -14,12 +14,22 @@ output "api_url" {
 }
 
 output "neon_direct_connection_uri" {
-  description = "マイグレーション用の direct 接続文字列（terraform output -raw で取得）"
-  value       = module.db.direct_connection_uri
+  description = "マイグレーション用（オーナーロール）の direct 接続文字列。GitHub Secret NEON_DATABASE_URL_DIRECT に登録する"
+  value       = replace(module.db.direct_connection_uri, "sslmode=require", "sslmode=verify-full")
   sensitive   = true
 }
 
 output "frontend_url" {
   description = "フロントエンド（Vercel）の既定ドメイン"
   value       = local.frontend_url
+}
+
+output "workload_identity_provider" {
+  description = "GitHub Actions の google-github-actions/auth に渡す provider 名"
+  value       = google_iam_workload_identity_pool_provider.github.name
+}
+
+output "deployer_service_account_email" {
+  description = "GitHub Actions がなりすますデプロイ用 SA"
+  value       = google_service_account.deployer.email
 }
