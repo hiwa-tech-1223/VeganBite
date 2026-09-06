@@ -29,6 +29,11 @@ flowchart TB
     GH -. "GitHub Actions（deploy.yml）<br/>Workload Identity Federation で docker push" .-> AR
     GH -. "GitHub Actions（deploy.yml）<br/>オーナーロールで direct 接続<br/>マイグレーション" .-> PG
 
+    %% 注釈（枠なし・小さめ）。PG の下に配置するため不可視リンクで繋ぐ
+    Note["※ シンガポールを使う理由: Neon に東京リージョンが無いため、Cloud Run と Vercel の Function を Neon に最も近いシンガポールに揃えている。<br/>API 1 リクエストで複数回発生する DB 往復を同一リージョン内に収め、国際回線を跨ぐのはブラウザ → Vercel の 1 回だけにするため。"]
+    Run ~~~ Note
+    PG ~~~ Note
+
     classDef client fill:#3d3d3d,stroke:#3d3d3d,color:#fff
     classDef vercel fill:#4b2a8a,stroke:#4b2a8a,color:#e6d9ff
     classDef run fill:#7a2e1c,stroke:#7a2e1c,color:#ffd9cf
@@ -40,6 +45,8 @@ flowchart TB
     class Run run
     class SM,AR gcp
     class PG neon
+    classDef note fill:none,stroke:none,color:#555,font-size:12px,text-align:left
+    class Note note
 
     style VercelBox fill:none,stroke:#888,stroke-dasharray:6 4,color:#666
     style GCPBox fill:none,stroke:#888,stroke-dasharray:6 4,color:#666
