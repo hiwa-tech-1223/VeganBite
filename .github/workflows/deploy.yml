@@ -1,0 +1,73 @@
+name: Deploy
+
+# main へのマージで Go API を Cloud Run にデプロイする。
+# フロントエンド（Next.js）は Vercel の GitHub 連携が main の push を検知して自動デプロイするため、ここでは扱わない。
+on:
+  push:
+    branches:
+      - main
+
+env:
+  PROJECT_ID: veganbite
+  REGION: asia-southeast1
+  SERVICE: veganbite-dev-api
+  IMAGE: asia-southeast1-docker.pkg.dev/veganbite/veganbite-dev/api
+  # Terraform（infra/environments/dev/cicd.tf）で作成した Workload Identity Federation。秘密情報ではない
+  WORKLOAD_IDENTITY_PROVIDER: projects/164814249326/locations/global/workloadIdentityPools/github/providers/github-actions
+  DEPLOYER_SERVICE_ACCOUNT: veganbite-dev-deployer@veganbite.iam.gserviceaccount.com
+
+jobs:
+  deploy-backend:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC トークンの発行に必要
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # 長期鍵を持たず、GitHub の OIDC トークンを GCP の短期認証情報に交換する
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          docker build \
+            -t "${IMAGE}:${GITHUB_SHA::7}" \
+            -t "${IMAGE}:latest" \
+            backend
+          docker push --all-tags "${IMAGE}"
+
+      # マイグレーションは Neon の direct 接続で実行する（pooled は advisory lock を使う golang-migrate と相性が悪い）
+      - name: Run database migrations
+        run: |
+          docker run --rm \
+            -v "${GITHUB_WORKSPACE}/backend/migrations:/migrations" \
+            migrate/migrate:v4.19.1 \
+            -path=/migrations \
+            -database "${NEON_DATABASE_URL_DIRECT}" \
+            up
+        env:
+          NEON_DATABASE_URL_DIRECT: ${{ secrets.NEON_DATABASE_URL_DIRECT }}
+
+      # イメージの更新は CI/CD の責務。Terraform 側は image を ignore_changes にしている
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy "${SERVICE}" \
+            --project "${PROJECT_ID}" \
+            --region "${REGION}" \
+            --image "${IMAGE}:${GITHUB_SHA::7}" \
+            --quiet
+
+      - name: Smoke test
+        run: |
+          URL=$(gcloud run services describe "${SERVICE}" --project "${PROJECT_ID}" --region "${REGION}" --format 'value(status.url)')
+          curl --fail --silent --show-error "${URL}/api/health"
