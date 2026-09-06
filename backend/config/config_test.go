@@ -64,3 +64,19 @@ func TestLoad_DefaultsWithoutDatabaseURL(t *testing.T) {
 		t.Errorf("GetDSN() = %q, want %q", got, want)
 	}
 }
+
+func TestLoad_PortDefaultsTo8080(t *testing.T) {
+	t.Setenv("PORT", "")
+
+	if got := Load().Port; got != "8080" {
+		t.Errorf("Port = %q, want %q", got, "8080")
+	}
+}
+
+func TestLoad_ReadsPort(t *testing.T) {
+	t.Setenv("PORT", "9090")
+
+	if got := Load().Port; got != "9090" {
+		t.Errorf("Port = %q, want %q", got, "9090")
+	}
+}

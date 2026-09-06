@@ -4,6 +4,9 @@ import "os"
 
 // Config - アプリケーション設定
 type Config struct {
+	// Server
+	Port string
+
 	// Database
 	// DatabaseURL が設定されていればそれを優先し、未設定なら個別項目から DSN を組み立てる
 	DatabaseURL string
@@ -30,6 +33,8 @@ type Config struct {
 // Load - 設定を読み込む
 func Load() *Config {
 	return &Config{
+		Port: getEnv("PORT", "8080"),
+
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		DBHost:      getEnv("DB_HOST", "localhost"),
 		DBPort:      getEnv("DB_PORT", "5432"),
