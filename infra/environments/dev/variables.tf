@@ -40,3 +40,9 @@ variable "neon_org_id" {
   type        = string
   default     = "org-old-grass-21337740"
 }
+
+variable "frontend_url" {
+  description = "フロントエンド（Vercel）の公開 URL。OAuth のリダイレクト先に使う。未確定の間は空文字"
+  type        = string
+  default     = ""
+}
