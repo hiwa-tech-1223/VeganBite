@@ -16,3 +16,9 @@ variable "env" {
   type        = string
   default     = "dev"
 }
+
+variable "api_image" {
+  description = "Cloud Run に初回デプロイするイメージ。実イメージへの差し替え後は CI/CD が更新する"
+  type        = string
+  default     = "us-docker.pkg.dev/cloudrun/container/hello"
+}
