@@ -12,3 +12,9 @@ output "api_url" {
   description = "Go API（Cloud Run）の公開 URL"
   value       = module.api.uri
 }
+
+output "neon_direct_connection_uri" {
+  description = "マイグレーション用の direct 接続文字列（terraform output -raw で取得）"
+  value       = module.db.direct_connection_uri
+  sensitive   = true
+}

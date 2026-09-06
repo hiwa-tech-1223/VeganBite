@@ -34,3 +34,9 @@ variable "google_client_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "neon_org_id" {
+  description = "Neon の Organization ID（org-...）。アカウントが組織単位のため必須。秘密情報ではない"
+  type        = string
+  default     = "org-old-grass-21337740"
+}
