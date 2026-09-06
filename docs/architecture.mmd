@@ -19,7 +19,7 @@ flowchart TB
         AR -. "gcloud run deploy" .-> Run
     end
 
-    Run -- "pooled 接続" --> PG
+    Run -- "pooled 接続<br/>アプリ用ロール（DML のみ）<br/>TLS 証明書検証（verify-full）" --> PG
 
     subgraph NeonBox["Neon（aws-ap-southeast-1・無料）"]
         PG["PostgreSQL 18<br/>アイドル 5 分でサスペンド・自動復帰"]
@@ -27,7 +27,7 @@ flowchart TB
 
     GH -. "Vercel の GitHub 連携が検知し<br/>自動でビルド・デプロイ" .-> Next
     GH -. "GitHub Actions（deploy.yml）<br/>Workload Identity Federation で docker push" .-> AR
-    GH -. "GitHub Actions（deploy.yml）<br/>direct 接続でマイグレーション" .-> PG
+    GH -. "GitHub Actions（deploy.yml）<br/>オーナーロールで direct 接続<br/>マイグレーション" .-> PG
 
     classDef client fill:#3d3d3d,stroke:#3d3d3d,color:#fff
     classDef vercel fill:#4b2a8a,stroke:#4b2a8a,color:#e6d9ff
