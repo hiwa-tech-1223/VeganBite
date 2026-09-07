@@ -1,3 +1,4 @@
+# PR の base は develop（既定の main ではなく、通常の開発フローと同じ経路でリリースする）
 version: 2
 updates:
   # Go モジュール
@@ -5,6 +6,7 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    target-branch: develop
     groups:
       go-minor-patch:
         update-types: [minor, patch]
@@ -14,6 +16,7 @@ updates:
     directory: /frontend
     schedule:
       interval: weekly
+    target-branch: develop
     groups:
       npm-minor-patch:
         update-types: [minor, patch]
@@ -25,12 +28,14 @@ updates:
       - /frontend
     schedule:
       interval: weekly
+    target-branch: develop
 
   # GitHub Actions
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    target-branch: develop
 
   # Terraform provider（community provider の neon はメジャー・マイナー更新を必ず目視で確認する）
   - package-ecosystem: terraform
@@ -40,3 +45,4 @@ updates:
       - /infra/modules/neon-database
     schedule:
       interval: weekly
+    target-branch: develop
