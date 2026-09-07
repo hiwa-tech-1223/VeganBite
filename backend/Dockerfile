@@ -2,7 +2,7 @@
 # 開発用ホットリロード環境は Dockerfile.dev を参照
 
 # --- ビルドステージ ---
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /app
 
@@ -16,7 +16,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /server ./cm
 
 # --- 実行ステージ ---
 # distroless/static は CA 証明書と tzdata を含むため、Neon（TLS）や Google OAuth への接続に追加設定不要
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 
 COPY --from=builder /server /server
 
