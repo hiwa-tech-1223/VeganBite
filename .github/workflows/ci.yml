@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -47,10 +47,12 @@ jobs:
         with:
           go-version-file: backend/go.mod
 
+      # ローカル（Dockerfile.dev）と同じバージョンに固定し、@latest による突然の挙動変化を防ぐ
       - name: Lint
-        run: |
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          golangci-lint run
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.13.2
+          working-directory: backend
 
       - name: Test
         run: go test ./...
