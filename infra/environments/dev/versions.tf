@@ -13,7 +13,7 @@ terraform {
     # community provider のため完全固定。上げるときは CHANGELOG を確認してから
     neon = {
       source  = "kislerdm/neon"
-      version = "= 0.15.0"
+      version = "0.17.0"
     }
     vercel = {
       source  = "vercel/vercel"
