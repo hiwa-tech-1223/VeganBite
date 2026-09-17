@@ -80,6 +80,8 @@ func NewEcho(cfg *config.Config) (*echo.Echo, error) {
 		},
 	}))
 	e.Use(middleware.Recover())
+	// Vercel の中継を経由しない直接アクセスを拒否する（ORIGIN_VERIFY_SECRET 未設定時は無効）
+	e.Use(handler.OriginVerifyMiddleware(cfg.OriginVerifySecret))
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", cfg.FrontendURL},
 		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},

@@ -80,3 +80,19 @@ func TestLoad_ReadsPort(t *testing.T) {
 		t.Errorf("Port = %q, want %q", got, "9090")
 	}
 }
+
+func TestLoad_ReadsOriginVerifySecret(t *testing.T) {
+	t.Setenv("ORIGIN_VERIFY_SECRET", "shared-secret")
+
+	if got := Load().OriginVerifySecret; got != "shared-secret" {
+		t.Errorf("OriginVerifySecret = %q, want %q", got, "shared-secret")
+	}
+}
+
+func TestLoad_OriginVerifySecretDefaultsToEmpty(t *testing.T) {
+	t.Setenv("ORIGIN_VERIFY_SECRET", "")
+
+	if got := Load().OriginVerifySecret; got != "" {
+		t.Errorf("OriginVerifySecret = %q, want empty", got)
+	}
+}

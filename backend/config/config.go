@@ -28,6 +28,10 @@ type Config struct {
 
 	// Frontend
 	FrontendURL string
+
+	// OriginVerifySecret - フロントエンド（Vercel）の中継だけが知る共有シークレット。
+	// 設定されている場合、X-Origin-Verify ヘッダーが一致しないリクエストを拒否する
+	OriginVerifySecret string
 }
 
 // Load - 設定を読み込む
@@ -50,6 +54,8 @@ func Load() *Config {
 
 		JWTSecret:   getEnv("JWT_SECRET", "default-secret-change-me"),
 		FrontendURL: getEnv("FRONTEND_URL", "http://localhost:5173"),
+
+		OriginVerifySecret: os.Getenv("ORIGIN_VERIFY_SECRET"),
 	}
 }
 
