@@ -10,7 +10,7 @@ import { adminApi } from '@/api/admin/productApi';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 
 export function AdminProductManagementContent() {
-  const { admin, token } = useAuth();
+  const { admin } = useAuth();
   const [products, setProducts] = useState<ApiProduct[]>([]);
   const [categories, setCategories] = useState<ApiCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -84,7 +84,7 @@ export function AdminProductManagementContent() {
 
     try {
       setIsDeleting(true);
-      await adminApi.deleteProduct(String(id), token!);
+      await adminApi.deleteProduct(String(id));
       setProducts(products.filter(p => p.id !== id));
       setSelectedProducts(selectedProducts.filter(pId => pId !== id));
     } catch (err) {
@@ -105,7 +105,7 @@ export function AdminProductManagementContent() {
     try {
       setIsDeleting(true);
       await Promise.all(
-        selectedProducts.map(id => adminApi.deleteProduct(String(id), token!))
+        selectedProducts.map(id => adminApi.deleteProduct(String(id)))
       );
       setProducts(products.filter(p => !selectedProducts.includes(p.id)));
       setSelectedProducts([]);

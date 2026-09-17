@@ -32,6 +32,9 @@ services:
       DB_PASSWORD: postgres
       DB_NAME: veganbite
       FRONTEND_URL: http://localhost:3000
+      # Google からのコールバックは Next.js の中継ルートで受け、state の照合とセッション Cookie の発行を行う
+      OAUTH_REDIRECT_URL: http://localhost:3000/api/auth/google/callback
+      OAUTH_ADMIN_REDIRECT_URL: http://localhost:3000/api/auth/admin/google/callback
     depends_on:
       db:
         condition: service_healthy

@@ -14,7 +14,7 @@ export const adminApi = {
     amazonUrl?: string;
     rakutenUrl?: string;
     yahooUrl?: string;
-  }, token: string) {
+  }) {
     // バックエンドは categories: [{id: ...}, ...] の形式を期待
     const payload = {
       ...data,
@@ -24,7 +24,6 @@ export const adminApi = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });
@@ -45,7 +44,7 @@ export const adminApi = {
     amazonUrl?: string;
     rakutenUrl?: string;
     yahooUrl?: string;
-  }, token: string) {
+  }) {
     // バックエンドは categories: [{id: ...}, ...] の形式を期待
     const payload = {
       ...data,
@@ -55,7 +54,6 @@ export const adminApi = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(payload),
     });
@@ -66,12 +64,9 @@ export const adminApi = {
   },
 
   // 商品を削除
-  async deleteProduct(id: string, token: string) {
+  async deleteProduct(id: string) {
     const response = await apiFetch(`/api/products/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
     if (!response.ok) {
       throw new Error('Failed to delete product');

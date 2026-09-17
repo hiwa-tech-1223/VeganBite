@@ -1,15 +1,13 @@
 // 認証関連のAPI
+// 認証は httpOnly Cookie（同一オリジンの /api 中継ルートが Authorization ヘッダーに詰め替える）で行うため、
+// ブラウザ側のコードはトークンを扱わない
 
 import { apiFetch, API_BASE_URL } from '../config';
 
 export const authApi = {
-  // 現在のユーザー情報を取得
-  async getCurrentUser(token: string) {
-    const response = await apiFetch('/api/auth/me', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  // 現在のユーザー情報を取得（未ログイン・無効なセッションなら null）
+  async getCurrentUser() {
+    const response = await apiFetch('/api/auth/me');
 
     if (!response.ok) {
       return null;
@@ -18,13 +16,10 @@ export const authApi = {
     return response.json();
   },
 
-  // ログアウト
-  async logout(token: string) {
+  // ログアウト（セッション Cookie を削除する）
+  async logout() {
     const response = await apiFetch('/api/auth/logout', {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
 
     if (!response.ok) {
