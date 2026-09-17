@@ -67,14 +67,61 @@ Terraform の定義は [infra/](infra/) にあります。Vercel のプロジェ
 ### 設計上のポイント
 
 - **scale-to-zero を徹底**: Cloud Run は `min_instance_count = 0` かつ CPU はリクエスト処理中のみ割り当て。Neon は Free プランのため常にサスペンド対象。DB への keep-alive や定期 ping は実装しない
-- **Go API は Vercel の中継ルート経由で呼ぶ**: ブラウザからは同一オリジンの `/api/*` に投げ、Next.js の Route Handler が Cloud Run に転送する。CORS 設定が不要で、バックエンドの URL もブラウザに露出しない
-- **Cloud Run は Vercel 経由のリクエストだけを受け付ける**: Cloud Run の URL 自体は公開だが、Vercel だけが知る共有シークレットを `X-Origin-Verify` ヘッダーで照合し、一致しないリクエストは Go が 403 を返す。Vercel の Firewall を迂回した直接アクセスを塞ぐため（CloudFront + オリジンのカスタムヘッダー照合と同じ考え方）。IAM 認証なら届く前に弾けるが、Vercel からの OIDC 連携が必要なため見送った
-- **Bot 対策は入口の Vercel で行う**: 同一 IP から `/api` への 1 分あたり 100 回超を Vercel Firewall のレート制限で 429 にする。書き込み系 API（POST / PUT / DELETE）は Vercel BotID（Basic）でブラウザ上のチャレンジを検証し、ページを経由しないスクリプトからのリクエストを 403 にする。いずれも Hobby プランの無料枠内
-- **秘密情報は Secret Manager から注入**: 実行用サービスアカウントには secret 単位で参照権限を付与。秘密でない値（クライアント ID、フロント URL）は平文の環境変数
-- **CI/CD は長期鍵を持たない**: GitHub Actions は Workload Identity Federation でデプロイ用サービスアカウントになりすます。信頼するのはこのリポジトリからの OIDC トークンのみ
-- **DB は公開エンドポイントだが、暗号化と最小権限で守る**: DB をプライベートネットワークに閉じ込めるには VPC コネクタや NAT（GCP 側）、IP 制限（Neon の有料プラン）が必要で、いずれも「常時課金なし」の方針と両立しない。そのため公開エンドポイントを前提に、接続は TLS 必須かつサーバー証明書も検証し（`sslmode=verify-full`）、アプリはデータの読み書きだけができる専用ロールで接続してテーブル定義の変更や削除はできないようにしている。DDL を持つオーナーロールはマイグレーション専用
+- **Go API は Vercel の中継ルート経由で呼ぶ**: ブラウザからは同一オリジンの `/api/*` に投げ、Next.js の Route Handler が Cloud Run に転送する。CORS 設定が不要で、バックエンドの URL もブラウザに露出しない。未ログインの訪問では Cloud Run を起動させない
+- **秘密情報は Secret Manager から注入**: 秘密でない値（クライアント ID、フロント URL）は平文の環境変数
 - **マイグレーションは direct 接続**: アプリは pooled（PgBouncer）接続を使うが、golang-migrate は advisory lock を使うため direct 接続で実行する
 - **使わないもの**: Cloud SQL / VPC / NAT / Load Balancer。いずれも存在するだけで固定費が発生するため
+
+セキュリティ上の設計は次の [Security](#security) にまとめています。
+
+## Security
+
+「常時課金なし」の制約の中で、ネットワークで隠すのではなく、入口での遮断・暗号化・最小権限を層ごとに重ねる方針です。
+
+### 入口（Vercel）
+
+- **DDoS 緩和**: Vercel の自動緩和（全プラン）
+- **レート制限**: 同一 IP から `/api` への 1 分あたり 100 回超を Vercel Firewall で 429 にする
+- **Bot 対策**: 書き込み系 API（POST / PUT / DELETE）は Vercel BotID（Basic）でブラウザ上のチャレンジを検証し、ページを経由しないスクリプトからのリクエストを 403 にする
+- **CSRF 対策**: セッション Cookie は `SameSite=Lax`。加えて書き込み系は `Sec-Fetch-Site`（無い場合は `Origin`）で自サイトからのリクエストかを確認する
+
+### API（Cloud Run）
+
+- **Vercel 経由のリクエストだけを受け付ける**: Vercel だけが知る共有シークレットを `X-Origin-Verify` ヘッダーで照合し（定数時間比較）、一致しなければ Go が 403 を返す。Vercel の Firewall を迂回した直接アクセスを塞ぐため（CloudFront + オリジンのカスタムヘッダー照合と同じ考え方）。デプロイ時のスモークテスト用に `/api/health` だけは対象外
+- **コンテナ**: distroless イメージを非 root ユーザーで実行
+
+### 認証・認可
+
+- **ログイン**: Google OAuth 2.0。ログイン開始時にランダムな `state` を httpOnly Cookie に保存し、Google からの戻りで照合する（ログイン CSRF 対策）
+- **セッション**: JWT（HS256、24 時間）を `HttpOnly` / `Secure` / `SameSite=Lax` の Cookie に保存する。トークンは URL にもブラウザの JavaScript にも出さず、Vercel の中継ルートが `Authorization` ヘッダーに詰め替えて Go に渡す。ログアウトではサーバー側で Cookie を削除する
+- **BAN・一時停止**: ログイン時と、ログイン済みのリクエストごとにアカウントの状態を確認する。発行済みのトークンでも即座に止まり、一時停止は期限を過ぎると自動で解除される
+- **管理者**: 管理者として登録された Google アカウントだけが管理者としてログインできる
+- **本人確認**: レビューの編集・削除とお気に入りの操作は本人のみ（レビューの削除は管理者も可）
+
+### データベース（Neon）
+
+- **暗号化**: 接続は TLS 必須で、サーバー証明書も検証する（`sslmode=verify-full`）
+- **最小権限**: アプリはデータの読み書きだけができる専用ロールで接続し、テーブル定義の変更や削除はできない。DDL を持つオーナーロールはマイグレーション専用で、GitHub Actions からのみ使う
+- **公開エンドポイントである理由**: DB をプライベートネットワークに閉じ込めるには VPC コネクタや NAT（GCP 側）、IP 制限（Neon の有料プラン）が必要で、いずれも「常時課金なし」の方針と両立しないため、上記の暗号化と最小権限で守る
+
+### 秘密情報
+
+- DB 接続文字列、JWT 署名鍵、OAuth クライアントシークレット、共有シークレットは Secret Manager に置き、実行用サービスアカウントには secret 単位で参照権限を付与する
+- JWT 署名鍵と共有シークレットは Terraform がランダム生成する。Vercel 側の共有シークレットは sensitive な環境変数
+- リポジトリに秘密情報を置かない（Terraform の `*.tfvars` は gitignore 対象）
+
+### CI/CD・依存関係
+
+- **長期鍵を持たない**: GitHub Actions は Workload Identity Federation でデプロイ用サービスアカウントになりすます。信頼するのはこのリポジトリからの OIDC トークンのみ
+- **デプロイ用の最小権限**: Artifact Registry への push、対象の Cloud Run サービスの更新、実行用サービスアカウントの指定だけを許可
+- **依存関係の更新**: Dependabot が Go / npm / Docker ベースイメージ / GitHub Actions / Terraform provider を週次で確認する
+
+### 割り切っている点
+
+- **Cloud Run の URL 自体は公開**: 直接のリクエストは 403 で拒否するが、拒否するまでにコンテナは起動する。届く前に弾くには IAM 認証が必要で、Vercel からの OIDC 連携が要るため見送った。Cloud Run は最大 2 インスタンスに制限しており、費用の上限は変わらない
+- **盗まれたセッションは期限まで有効**: JWT はサーバー側で取り消す仕組みを持たない（BAN したアカウントは即座に止まる）。httpOnly Cookie にしたことで JavaScript からは盗めない
+- **高度な Bot は見分けられない**: 本物のブラウザを操作する Bot の判定には BotID の Deep Analysis（Pro プラン）が必要
+- **レート制限は IP 単位**: 同じ IP を共有する利用者（社内ネットワーク、携帯回線など）はまとめて数えられる
 
 ## CI/CD
 
