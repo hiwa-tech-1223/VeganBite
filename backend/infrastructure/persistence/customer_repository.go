@@ -1,6 +1,8 @@
 package persistence
 
 import (
+	"errors"
+
 	"backend/domain/customer"
 
 	"gorm.io/gorm"
@@ -18,6 +20,10 @@ func NewCustomerRepository(db *gorm.DB) customer.CustomerRepository {
 func (r *customerRepository) FindByID(id int64) (*customer.Customer, error) {
 	var c customer.Customer
 	if err := r.db.First(&c, "id = ?", id).Error; err != nil {
+		// 「存在しない」と「DB エラー」を呼び出し側で区別できるようにする
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, customer.ErrNotFound
+		}
 		return nil, err
 	}
 	return &c, nil
