@@ -7,6 +7,7 @@ locals {
     database_url         = "${local.name_prefix}-database-url"
     jwt_secret           = "${local.name_prefix}-jwt-secret"
     google_client_secret = "${local.name_prefix}-google-client-secret"
+    origin_verify_secret = "${local.name_prefix}-origin-verify-secret"
   }
 }
 
@@ -57,3 +58,15 @@ resource "google_secret_manager_secret_version" "google_client_secret" {
 }
 
 # DATABASE_URL のバージョンは手順 5 で Neon の pooled 接続文字列から作成する
+
+# Vercel の中継と Go API だけが知る共有シークレット（X-Origin-Verify ヘッダー）。
+# Cloud Run の URL は公開されているため、Vercel の Firewall を迂回した直接アクセスを Go 側で拒否するのに使う
+resource "random_password" "origin_verify_secret" {
+  length  = 64
+  special = false # HTTP ヘッダーにそのまま載せられる文字だけにする
+}
+
+resource "google_secret_manager_secret_version" "origin_verify_secret" {
+  secret      = google_secret_manager_secret.app["origin_verify_secret"].id
+  secret_data = random_password.origin_verify_secret.result
+}

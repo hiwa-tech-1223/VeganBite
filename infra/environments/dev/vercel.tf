@@ -29,7 +29,45 @@ resource "vercel_project" "frontend" {
       sensitive = false
       target    = ["production", "preview"]
     },
+    {
+      # Go API へのサーバーサイドリクエストに付ける共有シークレット（secrets.tf と同じ値）
+      key       = "ORIGIN_VERIFY_SECRET"
+      value     = random_password.origin_verify_secret.result
+      sensitive = true
+      target    = ["production", "preview"]
+    },
   ]
+}
+
+# --- Vercel Firewall ---
+# Hobby プランの枠: カスタムルール 3 本（うちレート制限 1 本）、レート制限の許可リクエスト 100 万/月、カウントキーは IP / JA4。
+# DDoS 自動緩和は設定不要で全プランに適用される。書き込み系 API の Bot 対策は BotID（アプリ側）で行う。
+resource "vercel_firewall_config" "frontend" {
+  project_id = vercel_project.frontend.id
+
+  rules {
+    rule {
+      name        = "Rate limit API"
+      description = "同一 IP からの /api への連続リクエストを制限する（1 分あたり 100 回を超えたら 429）"
+      condition_group = [{
+        conditions = [{
+          type  = "path"
+          op    = "pre"
+          value = "/api"
+        }]
+      }]
+      action = {
+        action = "rate_limit"
+        rate_limit = {
+          limit  = 100
+          window = 60
+          keys   = ["ip"]
+          algo   = "fixed_window"
+          action = "rate_limit"
+        }
+      }
+    }
+  }
 }
 
 locals {
