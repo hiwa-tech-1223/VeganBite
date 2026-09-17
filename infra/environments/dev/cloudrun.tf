@@ -22,9 +22,12 @@ module "api" {
     DATABASE_URL         = google_secret_manager_secret.app["database_url"].secret_id
     JWT_SECRET           = google_secret_manager_secret.app["jwt_secret"].secret_id
     GOOGLE_CLIENT_SECRET = google_secret_manager_secret.app["google_client_secret"].secret_id
+    # Vercel の中継だけが知る共有シークレット。設定すると Go が X-Origin-Verify を照合し、直接アクセスを 403 で拒否する
+    ORIGIN_VERIFY_SECRET = google_secret_manager_secret.app["origin_verify_secret"].secret_id
   }
 
-  # 公開 API。認証はアプリ層の JWT で行う
+  # URL 自体は公開（Vercel から IAM 認証で呼ぶには OIDC 連携が必要なため見送り）。
+  # Vercel 以外からの API 利用は共有シークレットの照合で拒否し、ユーザー認証はアプリ層の JWT で行う
   allow_unauthenticated = true
 
   depends_on = [
@@ -33,5 +36,6 @@ module "api" {
     google_secret_manager_secret_version.database_url,
     google_secret_manager_secret_version.jwt_secret,
     google_secret_manager_secret_version.google_client_secret,
+    google_secret_manager_secret_version.origin_verify_secret,
   ]
 }
