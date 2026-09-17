@@ -8,6 +8,9 @@ const BACKEND_URL = process.env.API_URL_INTERNAL || 'http://localhost:8080';
 // BotID で検証する書き込み系メソッド。src/instrumentation-client.ts の protect と揃えること
 const BOT_PROTECTED_METHODS = new Set(['POST', 'PUT', 'DELETE']);
 
+// 本文を持てない HTTP ステータス
+const NULL_BODY_STATUSES = new Set([204, 205, 304]);
+
 // 中継ルートはキャッシュせず毎回バックエンドへ転送する
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +64,9 @@ async function handler(request: NextRequest, { params }: { params: Promise<{ pat
     responseHeaders.set('Content-Type', responseContentType);
   }
 
-  return new Response(await response.text(), {
+  // 204 / 205 / 304 は本文を持てないため、本文を付けずに返す（空文字でも Response の生成が例外になる）
+  const responseBody = NULL_BODY_STATUSES.has(response.status) ? null : await response.text();
+  return new Response(responseBody, {
     status: response.status,
     headers: responseHeaders,
   });
