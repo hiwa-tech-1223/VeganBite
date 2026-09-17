@@ -9,7 +9,7 @@ import { StarRating } from '@/components/common/StarRating';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function AdminReviewManagementContent() {
-  const { admin, token } = useAuth();
+  const { admin } = useAuth();
   const [reviews, setReviews] = useState<ApiReview[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRating, setSelectedRating] = useState('All');
@@ -20,10 +20,10 @@ export function AdminReviewManagementContent() {
   const itemsPerPage = 10;
 
   useEffect(() => {
-    if (!token) return;
+    if (!admin) return;
     const fetchReviews = async () => {
       try {
-        const data = await adminReviewApi.getAllReviews(token);
+        const data = await adminReviewApi.getAllReviews();
         setReviews(data);
       } catch (error) {
         console.error('Failed to fetch reviews:', error);
@@ -32,7 +32,7 @@ export function AdminReviewManagementContent() {
       }
     };
     fetchReviews();
-  }, [token]);
+  }, [admin]);
 
   if (!admin) return null;
 
@@ -55,7 +55,7 @@ export function AdminReviewManagementContent() {
     if (confirm('このレビューを削除しますか？\n\nAre you sure you want to delete this review?')) {
       setIsDeleting(true);
       try {
-        await adminReviewApi.deleteReview(reviewId, token!);
+        await adminReviewApi.deleteReview(reviewId);
         setReviews(reviews.filter(r => r.id !== reviewId));
         setSelectedReviews(selectedReviews.filter(id => id !== reviewId));
       } catch (error) {
@@ -89,7 +89,7 @@ export function AdminReviewManagementContent() {
       setIsDeleting(true);
       try {
         await Promise.all(
-          selectedReviews.map(id => adminReviewApi.deleteReview(id, token!))
+          selectedReviews.map(id => adminReviewApi.deleteReview(id))
         );
         setReviews(reviews.filter(r => !selectedReviews.includes(r.id)));
         setSelectedReviews([]);

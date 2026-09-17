@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Shield } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/api/auth/authApi';
+import { getAdminLoginErrorMessage } from './adminLoginErrorMessage';
 
 function AdminLoginContent() {
   const { admin, isAdmin } = useAuth();
@@ -42,7 +43,7 @@ function AdminLoginContent() {
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">
-            {decodeURIComponent(error)}
+            {getAdminLoginErrorMessage(error)}
           </div>
         )}
 

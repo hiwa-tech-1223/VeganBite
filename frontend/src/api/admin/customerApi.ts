@@ -18,22 +18,19 @@ function toManagedCustomer(data: Record<string, unknown>): ManagedCustomer {
 
 export const adminApi = {
   // カスタマー一覧を取得
-  async getCustomers(token: string): Promise<ManagedCustomer[]> {
-    const response = await apiFetch('/api/admin/customers', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+  async getCustomers(): Promise<ManagedCustomer[]> {
+    const response = await apiFetch('/api/admin/customers');
     if (!response.ok) throw new Error('Failed to fetch customers');
     const data: Record<string, unknown>[] = await response.json();
     return data.map(toManagedCustomer);
   },
 
   // カスタマーをBANする
-  async banCustomer(customerId: number, reason: string, token: string): Promise<ManagedCustomer> {
+  async banCustomer(customerId: number, reason: string): Promise<ManagedCustomer> {
     const response = await apiFetch(`/api/admin/customers/${customerId}/ban`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ reason }),
     });
@@ -42,12 +39,11 @@ export const adminApi = {
   },
 
   // カスタマーを一時停止する
-  async suspendCustomer(customerId: number, duration: number, reason: string, token: string): Promise<ManagedCustomer> {
+  async suspendCustomer(customerId: number, duration: number, reason: string): Promise<ManagedCustomer> {
     const response = await apiFetch(`/api/admin/customers/${customerId}/suspend`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ duration, reason }),
     });
@@ -56,10 +52,9 @@ export const adminApi = {
   },
 
   // カスタマーのBAN/停止を解除する
-  async unbanCustomer(customerId: number, token: string): Promise<ManagedCustomer> {
+  async unbanCustomer(customerId: number): Promise<ManagedCustomer> {
     const response = await apiFetch(`/api/admin/customers/${customerId}/unban`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) throw new Error('Failed to unban customer');
     return toManagedCustomer(await response.json());

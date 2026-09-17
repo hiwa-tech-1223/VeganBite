@@ -24,14 +24,15 @@ describe('adminApi', () => {
         categoryIds: [1, 3],
         imageUrl: 'https://example.com/img.jpg',
         amazonUrl: 'https://amazon.co.jp/test',
-      }, 'test-token');
+      });
 
       const [url, options] = mockFetch.mock.calls[0];
       const body = JSON.parse(options.body);
 
       expect(url).toContain('/api/products');
       expect(options.method).toBe('POST');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
       expect(body.categories).toEqual([{ id: 1 }, { id: 3 }]);
       expect(body.name).toBe('Test Product');
       expect(body.amazonUrl).toBe('https://amazon.co.jp/test');
@@ -48,7 +49,7 @@ describe('adminApi', () => {
           descriptionJa: '説明',
           categoryIds: [1],
           imageUrl: 'https://example.com/img.jpg',
-        }, 'test-token')
+        })
       ).rejects.toThrow('Failed to create product');
     });
   });
@@ -63,7 +64,7 @@ describe('adminApi', () => {
       await adminApi.updateProduct('1', {
         name: 'Updated',
         categoryIds: [2, 4],
-      }, 'test-token');
+      });
 
       const [url, options] = mockFetch.mock.calls[0];
       const body = JSON.parse(options.body);
@@ -81,7 +82,7 @@ describe('adminApi', () => {
 
       await adminApi.updateProduct('1', {
         name: 'Updated',
-      }, 'test-token');
+      });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.categories).toBeUndefined();
@@ -91,7 +92,7 @@ describe('adminApi', () => {
       mockFetch.mockResolvedValue({ ok: false, status: 404 });
 
       await expect(
-        adminApi.updateProduct('999', { name: 'Test' }, 'test-token')
+        adminApi.updateProduct('999', { name: 'Test' })
       ).rejects.toThrow('Failed to update product');
     });
   });
@@ -100,19 +101,20 @@ describe('adminApi', () => {
     it('DELETE リクエストを送信する', async () => {
       mockFetch.mockResolvedValue({ ok: true });
 
-      await adminApi.deleteProduct('1', 'test-token');
+      await adminApi.deleteProduct('1');
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/products/1');
       expect(options.method).toBe('DELETE');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
       await expect(
-        adminApi.deleteProduct('1', 'test-token')
+        adminApi.deleteProduct('1')
       ).rejects.toThrow('Failed to delete product');
     });
   });

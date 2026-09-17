@@ -16,14 +16,12 @@ export const reviewApi = {
   // レビューを投稿（認証必要）
   async createReview(
     productId: number,
-    data: { rating: number; comment: string },
-    token: string
+    data: { rating: number; comment: string }
   ): Promise<ApiReview> {
     const response = await apiFetch(`/api/products/${productId}/reviews`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -37,14 +35,12 @@ export const reviewApi = {
   // レビューを更新（認証必要）
   async updateReview(
     reviewId: number,
-    data: { rating: number; comment: string },
-    token: string
+    data: { rating: number; comment: string }
   ): Promise<ApiReview> {
     const response = await apiFetch(`/api/reviews/${reviewId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -56,12 +52,9 @@ export const reviewApi = {
   },
 
   // レビューを削除（認証必要）
-  async deleteReview(reviewId: number, token: string): Promise<void> {
+  async deleteReview(reviewId: number): Promise<void> {
     const response = await apiFetch(`/api/reviews/${reviewId}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
     if (!response.ok) {
       throw new Error('Failed to delete review');

@@ -90,7 +90,7 @@ function parseKantanLinkHtml(html: string): ParsedKantanLink {
 
 export function AdminProductForm({ productId }: AdminProductFormProps) {
   const router = useRouter();
-  const { admin, token } = useAuth();
+  const { admin } = useAuth();
   const isEditMode = productId !== undefined;
 
   // --- State ---
@@ -363,7 +363,7 @@ export function AdminProductForm({ productId }: AdminProductFormProps) {
     setValidationErrors({});
     setError(null);
 
-    if (!token) {
+    if (!admin) {
       setError('認証エラー: 再ログインしてください');
       return;
     }
@@ -396,9 +396,9 @@ export function AdminProductForm({ productId }: AdminProductFormProps) {
       };
 
       if (isEditMode && productId !== undefined) {
-        await adminApi.updateProduct(String(productId), productData, token);
+        await adminApi.updateProduct(String(productId), productData);
       } else {
-        await adminApi.createProduct(productData, token);
+        await adminApi.createProduct(productData);
       }
 
       router.push('/admin/products');

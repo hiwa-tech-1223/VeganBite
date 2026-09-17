@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"regexp"
 
 	"backend/domain/customer"
 	"backend/infrastructure/auth"
@@ -31,10 +32,18 @@ func NewAuthHandler(authUsecase *usecase.AuthUsecase, oauthService *auth.OAuthSe
 	}
 }
 
-// HandleGoogleLogin - Googleログイン
+// oauthStatePattern - OAuth の state として受け付ける形式（base64url、32〜128 文字）
+var oauthStatePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{32,128}$`)
+
+// HandleGoogleLogin - Googleログイン。
+// state はフロントエンド（Vercel）がランダムに生成して httpOnly Cookie に保存した値で、
+// コールバック時にフロントエンドが Cookie と照合する（ログイン CSRF 対策）
 func (h *AuthHandler) HandleGoogleLogin(c echo.Context) error {
-	url := h.oauthService.GetAuthURL("user-login")
-	return c.Redirect(http.StatusTemporaryRedirect, url)
+	state := c.QueryParam("state")
+	if !oauthStatePattern.MatchString(state) {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_state"})
+	}
+	return c.Redirect(http.StatusTemporaryRedirect, h.oauthService.GetAuthURL(state))
 }
 
 // HandleGoogleCallback - Googleコールバック
@@ -76,10 +85,13 @@ func (h *AuthHandler) HandleGoogleCallback(c echo.Context) error {
 	return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL+"/auth/callback?token="+jwtToken)
 }
 
-// HandleAdminGoogleLogin - 管理者Googleログイン
+// HandleAdminGoogleLogin - 管理者Googleログイン（state の扱いは HandleGoogleLogin と同じ）
 func (h *AuthHandler) HandleAdminGoogleLogin(c echo.Context) error {
-	url := h.oauthService.GetAdminAuthURL("admin-login")
-	return c.Redirect(http.StatusTemporaryRedirect, url)
+	state := c.QueryParam("state")
+	if !oauthStatePattern.MatchString(state) {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_state"})
+	}
+	return c.Redirect(http.StatusTemporaryRedirect, h.oauthService.GetAdminAuthURL(state))
 }
 
 // HandleAdminGoogleCallback - 管理者Googleコールバック

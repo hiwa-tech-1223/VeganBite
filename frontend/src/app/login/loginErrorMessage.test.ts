@@ -9,6 +9,10 @@ describe('getLoginErrorMessage', () => {
     expect(getLoginErrorMessage('suspended')).toContain('一時停止中');
   });
 
+  it('state の照合に失敗した場合は再試行を促す', () => {
+    expect(getLoginErrorMessage('invalid_state')).toContain('もう一度お試しください');
+  });
+
   it('それ以外のエラーは汎用の文言を返す', () => {
     expect(getLoginErrorMessage('token_exchange')).toBe('ログインに失敗しました。もう一度お試しください。');
   });

@@ -16,18 +16,19 @@ describe('authApi', () => {
         json: () => Promise.resolve(userData),
       });
 
-      const result = await authApi.getCurrentUser('test-token');
+      const result = await authApi.getCurrentUser();
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/auth/me');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
       expect(result).toEqual(userData);
     });
 
     it('レスポンスが非OKの場合はnullを返す', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 401 });
 
-      const result = await authApi.getCurrentUser('invalid-token');
+      const result = await authApi.getCurrentUser();
 
       expect(result).toBeNull();
     });
@@ -40,18 +41,19 @@ describe('authApi', () => {
         json: () => Promise.resolve({ message: 'logged out' }),
       });
 
-      await authApi.logout('test-token');
+      await authApi.logout();
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/auth/logout');
       expect(options.method).toBe('POST');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      await expect(authApi.logout('token')).rejects.toThrow('Failed to logout');
+      await expect(authApi.logout()).rejects.toThrow('Failed to logout');
     });
   });
 

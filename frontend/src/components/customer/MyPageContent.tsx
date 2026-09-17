@@ -15,7 +15,7 @@ import { Footer } from '@/components/common/Footer';
 
 export function MyPageContent() {
   const router = useRouter();
-  const { customer, token, logout } = useAuth();
+  const { customer, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<'reviews' | 'favorites'>('reviews');
   const [favorites, setFavorites] = useState<ApiFavorite[]>([]);
   const [reviews, setReviews] = useState<ApiReview[]>([]);
@@ -23,15 +23,15 @@ export function MyPageContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!customer || !token) return;
+    if (!customer) return;
 
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       try {
         const [favoritesData, reviewsData] = await Promise.all([
-          customerApi.getFavorites(customer.id, token),
-          customerApi.getReviews(customer.id, token),
+          customerApi.getFavorites(customer.id),
+          customerApi.getReviews(customer.id),
         ]);
         setFavorites(favoritesData || []);
         setReviews(reviewsData || []);
@@ -44,17 +44,17 @@ export function MyPageContent() {
     };
 
     fetchData();
-  }, [customer, token]);
+  }, [customer]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async (): Promise<void> => {
+    await logout();
     router.push('/');
   };
 
   const handleDeleteReview = async (reviewId: number) => {
-    if (!token) return;
+    if (!customer) return;
     try {
-      await reviewApi.deleteReview(reviewId, token);
+      await reviewApi.deleteReview(reviewId);
       setReviews(reviews.filter((r) => r.id !== reviewId));
     } catch (err) {
       console.error('Failed to delete review:', err);
@@ -63,9 +63,9 @@ export function MyPageContent() {
   };
 
   const handleRemoveFavorite = async (productId: number) => {
-    if (!customer || !token) return;
+    if (!customer) return;
     try {
-      await customerApi.removeFavorite(customer.id, productId, token);
+      await customerApi.removeFavorite(customer.id, productId);
       setFavorites(favorites.filter((f) => f.productId !== productId));
     } catch (err) {
       console.error('Failed to remove favorite:', err);

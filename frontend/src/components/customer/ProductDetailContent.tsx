@@ -25,7 +25,7 @@ export function ProductDetailContent({
   initialReviews,
 }: ProductDetailContentProps) {
   const router = useRouter();
-  const { customer, token } = useAuth();
+  const { customer } = useAuth();
 
   const [product, setProduct] = useState<ApiProduct>(initialProduct);
   const [reviews, setReviews] = useState<ApiReview[]>(initialReviews);
@@ -65,9 +65,9 @@ export function ProductDetailContent({
   // お気に入り状態を取得
   useEffect(() => {
     const fetchFavorites = async () => {
-      if (!customer || !token) return;
+      if (!customer) return;
       try {
-        const favorites = await customerApi.getFavorites(customer.id, token);
+        const favorites = await customerApi.getFavorites(customer.id);
         const isFav = favorites?.some((f: { productId: number }) => f.productId === productId) ?? false;
         setIsFavorite(isFav);
       } catch (err) {
@@ -75,7 +75,7 @@ export function ProductDetailContent({
       }
     };
     fetchFavorites();
-  }, [customer, token, productId]);
+  }, [customer, productId]);
 
   const validateReview = (): Record<string, string> => {
     const errors: Record<string, string> = {};
@@ -96,7 +96,7 @@ export function ProductDetailContent({
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customer || !token) {
+    if (!customer) {
       router.push('/login');
       return;
     }
@@ -116,15 +116,14 @@ export function ProductDetailContent({
       if (isEditMode && existingCustomerReview) {
         updatedReview = await reviewApi.updateReview(
           existingCustomerReview.id,
-          { rating, comment },
-          token
+          { rating, comment }
         );
         setReviews((prev) =>
           prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
         );
         setExistingCustomerReview(updatedReview);
       } else {
-        updatedReview = await reviewApi.createReview(productId, { rating, comment }, token);
+        updatedReview = await reviewApi.createReview(productId, { rating, comment });
         setReviews((prev) => [updatedReview, ...prev]);
         setExistingCustomerReview(updatedReview);
       }
@@ -146,7 +145,7 @@ export function ProductDetailContent({
   };
 
   const toggleFavorite = async () => {
-    if (!customer || !token) {
+    if (!customer) {
       router.push('/login');
       return;
     }
@@ -154,10 +153,10 @@ export function ProductDetailContent({
     setIsTogglingFavorite(true);
     try {
       if (isFavorite) {
-        await customerApi.removeFavorite(customer.id, productId, token);
+        await customerApi.removeFavorite(customer.id, productId);
         setIsFavorite(false);
       } else {
-        await customerApi.addFavorite(customer.id, productId, token);
+        await customerApi.addFavorite(customer.id, productId);
         setIsFavorite(true);
       }
     } catch (err) {

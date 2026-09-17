@@ -6,23 +6,27 @@ import { authApi } from '@/api/auth/authApi';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// 以前 localStorage に JWT を保存していたときのキー。httpOnly Cookie に移行したため、残っていれば削除する
+const LEGACY_TOKEN_STORAGE_KEY = 'token';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [admin, setAdmin] = useState<Admin | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // トークンからユーザー情報を取得
-  const fetchCurrentUser = useCallback(async (authToken: string) => {
+  const clearUser = useCallback((): void => {
+    setCustomer(null);
+    setAdmin(null);
+    setIsAdmin(false);
+  }, []);
+
+  // セッション Cookie（ブラウザが自動送信）でユーザー情報を取得する
+  const fetchCurrentUser = useCallback(async (): Promise<void> => {
     try {
-      const data = await authApi.getCurrentUser(authToken);
+      const data = await authApi.getCurrentUser();
       if (!data) {
-        localStorage.removeItem('token');
-        setToken(null);
-        setCustomer(null);
-        setAdmin(null);
-        setIsAdmin(false);
+        clearUser();
         return;
       }
       if (data.isAdmin) {
@@ -36,65 +40,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Failed to fetch current user:', error);
-      localStorage.removeItem('token');
-      setToken(null);
-      setCustomer(null);
-      setAdmin(null);
-      setIsAdmin(false);
+      clearUser();
     }
-  }, []);
+  }, [clearUser]);
 
-  // 初期化時にlocalStorageからトークンを読み、ユーザー情報を取得（クライアントのみ）
+  // 初期化時にログイン状態を取得する（クライアントのみ）
   useEffect(() => {
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-        setToken(storedToken);
-        await fetchCurrentUser(storedToken);
+    const initAuth = async (): Promise<void> => {
+      try {
+        localStorage.removeItem(LEGACY_TOKEN_STORAGE_KEY);
+      } catch {
+        // ストレージが使えない環境では何もしない
       }
+      await fetchCurrentUser();
       setIsLoading(false);
     };
     initAuth();
   }, [fetchCurrentUser]);
 
-  // ログイン処理
-  const login = useCallback(
-    async (newToken: string) => {
-      localStorage.setItem('token', newToken);
-      setToken(newToken);
-      await fetchCurrentUser(newToken);
-    },
-    [fetchCurrentUser]
-  );
-
-  // ログアウト処理
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    setToken(null);
-    setCustomer(null);
-    setAdmin(null);
-    setIsAdmin(false);
-  }, []);
-
-  // 認証ヘッダーを取得
-  const getAuthHeader = useCallback(() => {
-    if (token) {
-      return { Authorization: `Bearer ${token}` };
+  // ログアウト処理（サーバーでセッション Cookie を削除してから画面の状態を消す）
+  const logout = useCallback(async (): Promise<void> => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    } finally {
+      clearUser();
     }
-    return {};
-  }, [token]);
+  }, [clearUser]);
 
   return (
     <AuthContext.Provider
       value={{
         customer,
         admin,
-        token,
         isLoading,
         isAdmin,
-        login,
         logout,
-        getAuthHeader,
       }}
     >
       {children}
@@ -102,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
