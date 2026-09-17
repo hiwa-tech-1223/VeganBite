@@ -10,7 +10,7 @@ import { Category } from '@/api/customer/productTypes';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function AdminCategoryManagementContent() {
-  const { admin, token } = useAuth();
+  const { admin } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -44,7 +44,7 @@ export function AdminCategoryManagementContent() {
     if (confirm('このカテゴリーを削除しますか？このカテゴリーの商品は未分類になります。\n\nAre you sure you want to delete this category? Products in this category will become uncategorized.')) {
       setIsDeleting(true);
       try {
-        await categoryApi.deleteCategory(id, token!);
+        await categoryApi.deleteCategory(id);
         setCategories(categories.filter(c => c.id !== id));
         setSelectedCategories(selectedCategories.filter(cId => cId !== id));
       } catch (error) {
@@ -78,7 +78,7 @@ export function AdminCategoryManagementContent() {
       setIsDeleting(true);
       try {
         await Promise.all(
-          selectedCategories.map(id => categoryApi.deleteCategory(id, token!))
+          selectedCategories.map(id => categoryApi.deleteCategory(id))
         );
         setCategories(categories.filter(c => !selectedCategories.includes(c.id)));
         setSelectedCategories([]);

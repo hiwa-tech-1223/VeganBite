@@ -19,10 +19,7 @@ export interface Admin {
 export interface AuthContextType {
   customer: Customer | null;
   admin: Admin | null;
-  token: string | null;
   isLoading: boolean;
   isAdmin: boolean;
-  login: (token: string) => Promise<void>;
-  logout: () => void;
-  getAuthHeader: () => { Authorization?: string };
+  logout: () => Promise<void>;
 }

@@ -16,7 +16,7 @@ interface AdminCategoryFormProps {
 }
 
 export function AdminCategoryForm({ categoryId }: AdminCategoryFormProps) {
-  const { admin, token } = useAuth();
+  const { admin } = useAuth();
   const router = useRouter();
   const isEditMode = categoryId !== undefined;
 
@@ -139,7 +139,7 @@ export function AdminCategoryForm({ categoryId }: AdminCategoryFormProps) {
     setValidationErrors({});
     setError(null);
 
-    if (!token) {
+    if (!admin) {
       setError('認証エラー: 再ログインしてください');
       return;
     }
@@ -159,9 +159,9 @@ export function AdminCategoryForm({ categoryId }: AdminCategoryFormProps) {
     setIsSaving(true);
     try {
       if (isEditMode && categoryId !== undefined) {
-        await categoryApi.updateCategory(categoryId, formData, token);
+        await categoryApi.updateCategory(categoryId, formData);
       } else {
-        await categoryApi.createCategory(formData, token);
+        await categoryApi.createCategory(formData);
       }
 
       router.push('/admin/categories');

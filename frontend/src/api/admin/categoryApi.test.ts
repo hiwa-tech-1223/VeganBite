@@ -15,13 +15,14 @@ describe('categoryApi', () => {
         json: () => Promise.resolve({ id: 1, name: 'Snacks' }),
       });
 
-      const result = await categoryApi.createCategory({ name: 'Snacks', nameJa: 'スナック' }, 'test-token');
+      const result = await categoryApi.createCategory({ name: 'Snacks', nameJa: 'スナック' });
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/categories');
       expect(options.method).toBe('POST');
       expect(options.headers['Content-Type']).toBe('application/json');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
       expect(JSON.parse(options.body)).toEqual({ name: 'Snacks', nameJa: 'スナック' });
       expect(result).toEqual({ id: 1, name: 'Snacks' });
     });
@@ -30,7 +31,7 @@ describe('categoryApi', () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
       await expect(
-        categoryApi.createCategory({ name: 'Test', nameJa: 'テスト' }, 'token')
+        categoryApi.createCategory({ name: 'Test', nameJa: 'テスト' })
       ).rejects.toThrow('Failed to create category');
     });
   });
@@ -42,7 +43,7 @@ describe('categoryApi', () => {
         json: () => Promise.resolve({ id: 1, name: 'Updated' }),
       });
 
-      await categoryApi.updateCategory(1, { name: 'Updated', nameJa: '更新済み' }, 'test-token');
+      await categoryApi.updateCategory(1, { name: 'Updated', nameJa: '更新済み' });
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/categories/1');
@@ -54,7 +55,7 @@ describe('categoryApi', () => {
       mockFetch.mockResolvedValue({ ok: false, status: 404 });
 
       await expect(
-        categoryApi.updateCategory(999, { name: 'Test', nameJa: 'テスト' }, 'token')
+        categoryApi.updateCategory(999, { name: 'Test', nameJa: 'テスト' })
       ).rejects.toThrow('Failed to update category');
     });
   });
@@ -63,18 +64,19 @@ describe('categoryApi', () => {
     it('DELETEリクエストを送信する', async () => {
       mockFetch.mockResolvedValue({ ok: true });
 
-      await categoryApi.deleteCategory(1, 'test-token');
+      await categoryApi.deleteCategory(1);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/categories/1');
       expect(options.method).toBe('DELETE');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
-      await expect(categoryApi.deleteCategory(1, 'token')).rejects.toThrow('Failed to delete category');
+      await expect(categoryApi.deleteCategory(1)).rejects.toThrow('Failed to delete category');
     });
   });
 });

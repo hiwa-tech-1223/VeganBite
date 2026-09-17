@@ -20,7 +20,7 @@ describe('adminApi (customer)', () => {
           ]),
       });
 
-      const result = await adminApi.getCustomers('test-token');
+      const result = await adminApi.getCustomers();
 
       expect(result).toEqual([
         expect.objectContaining({ id: 1, name: 'User A', status: 'active' }),
@@ -35,7 +35,7 @@ describe('adminApi (customer)', () => {
         json: () => Promise.resolve([{ id: 1, name: 'User', status: 99 }]),
       });
 
-      const result = await adminApi.getCustomers('test-token');
+      const result = await adminApi.getCustomers();
 
       expect(result[0].status).toBe('active');
     });
@@ -46,16 +46,17 @@ describe('adminApi (customer)', () => {
         json: () => Promise.resolve([]),
       });
 
-      await adminApi.getCustomers('my-token');
+      await adminApi.getCustomers();
 
       const [, options] = mockFetch.mock.calls[0];
-      expect(options.headers.Authorization).toBe('Bearer my-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      await expect(adminApi.getCustomers('token')).rejects.toThrow('Failed to fetch customers');
+      await expect(adminApi.getCustomers()).rejects.toThrow('Failed to fetch customers');
     });
   });
 
@@ -66,7 +67,7 @@ describe('adminApi (customer)', () => {
         json: () => Promise.resolve({ id: 1, status: 1 }),
       });
 
-      const result = await adminApi.banCustomer(1, 'spam', 'test-token');
+      const result = await adminApi.banCustomer(1, 'spam');
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/admin/customers/1/ban');
@@ -78,7 +79,7 @@ describe('adminApi (customer)', () => {
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
-      await expect(adminApi.banCustomer(1, 'spam', 'token')).rejects.toThrow('Failed to ban customer');
+      await expect(adminApi.banCustomer(1, 'spam')).rejects.toThrow('Failed to ban customer');
     });
   });
 
@@ -89,7 +90,7 @@ describe('adminApi (customer)', () => {
         json: () => Promise.resolve({ id: 1, status: 2 }),
       });
 
-      const result = await adminApi.suspendCustomer(1, 7, 'violation', 'test-token');
+      const result = await adminApi.suspendCustomer(1, 7, 'violation');
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/admin/customers/1/suspend');
@@ -101,7 +102,7 @@ describe('adminApi (customer)', () => {
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      await expect(adminApi.suspendCustomer(1, 7, 'reason', 'token')).rejects.toThrow('Failed to suspend customer');
+      await expect(adminApi.suspendCustomer(1, 7, 'reason')).rejects.toThrow('Failed to suspend customer');
     });
   });
 
@@ -112,7 +113,7 @@ describe('adminApi (customer)', () => {
         json: () => Promise.resolve({ id: 1, status: 0 }),
       });
 
-      const result = await adminApi.unbanCustomer(1, 'test-token');
+      const result = await adminApi.unbanCustomer(1);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/admin/customers/1/unban');
@@ -123,7 +124,7 @@ describe('adminApi (customer)', () => {
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      await expect(adminApi.unbanCustomer(1, 'token')).rejects.toThrow('Failed to unban customer');
+      await expect(adminApi.unbanCustomer(1)).rejects.toThrow('Failed to unban customer');
     });
   });
 });

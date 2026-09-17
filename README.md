@@ -154,9 +154,9 @@ docker compose exec backend migrate -path ./migrations -database "postgres://pos
 2. Create a new project
 3. Enable OAuth consent screen
 4. Create OAuth 2.0 credentials
-5. Add authorized redirect URIs:
-   - `http://localhost:8080/api/auth/google/callback`
-   - `http://localhost:8080/api/auth/admin/google/callback`
+5. Add authorized redirect URIs（Google からのコールバックは Next.js が受け、state の照合とセッション Cookie の発行を行う）:
+   - `http://localhost:3000/api/auth/google/callback`
+   - `http://localhost:3000/api/auth/admin/google/callback`
 
 ## Project Structure
 

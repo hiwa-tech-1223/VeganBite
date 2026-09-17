@@ -16,18 +16,19 @@ describe('customerApi', () => {
         json: () => Promise.resolve(favorites),
       });
 
-      const result = await customerApi.getFavorites(1, 'test-token');
+      const result = await customerApi.getFavorites(1);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/customers/1/favorites');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
       expect(result).toEqual(favorites);
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      await expect(customerApi.getFavorites(1, 'token')).rejects.toThrow('Failed to fetch favorites');
+      await expect(customerApi.getFavorites(1)).rejects.toThrow('Failed to fetch favorites');
     });
   });
 
@@ -38,7 +39,7 @@ describe('customerApi', () => {
         json: () => Promise.resolve({ id: 1, productId: 10 }),
       });
 
-      await customerApi.addFavorite(1, 10, 'test-token');
+      await customerApi.addFavorite(1, 10);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/customers/1/favorites');
@@ -49,7 +50,7 @@ describe('customerApi', () => {
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 400 });
 
-      await expect(customerApi.addFavorite(1, 10, 'token')).rejects.toThrow('Failed to add favorite');
+      await expect(customerApi.addFavorite(1, 10)).rejects.toThrow('Failed to add favorite');
     });
   });
 
@@ -57,18 +58,19 @@ describe('customerApi', () => {
     it('DELETEリクエストを送信する', async () => {
       mockFetch.mockResolvedValue({ ok: true });
 
-      await customerApi.removeFavorite(1, 10, 'test-token');
+      await customerApi.removeFavorite(1, 10);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/customers/1/favorites/10');
       expect(options.method).toBe('DELETE');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 404 });
 
-      await expect(customerApi.removeFavorite(1, 10, 'token')).rejects.toThrow('Failed to remove favorite');
+      await expect(customerApi.removeFavorite(1, 10)).rejects.toThrow('Failed to remove favorite');
     });
   });
 
@@ -80,18 +82,19 @@ describe('customerApi', () => {
         json: () => Promise.resolve(reviews),
       });
 
-      const result = await customerApi.getReviews(1, 'test-token');
+      const result = await customerApi.getReviews(1);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/customers/1/reviews');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
       expect(result).toEqual(reviews);
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 500 });
 
-      await expect(customerApi.getReviews(1, 'token')).rejects.toThrow('Failed to fetch reviews');
+      await expect(customerApi.getReviews(1)).rejects.toThrow('Failed to fetch reviews');
     });
   });
 });

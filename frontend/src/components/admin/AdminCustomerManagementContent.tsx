@@ -9,7 +9,7 @@ import { ManagedCustomer } from '@/api/admin/customerTypes';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function AdminCustomerManagementContent() {
-  const { admin, token: adminToken } = useAuth();
+  const { admin } = useAuth();
   const [customers, setCustomers] = useState<ManagedCustomer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'banned' | 'suspended'>('all');
@@ -30,7 +30,7 @@ export function AdminCustomerManagementContent() {
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const data = await adminApi.getCustomers(adminToken || '');
+        const data = await adminApi.getCustomers();
         setCustomers(data);
       } catch (err) {
         setError('Failed to fetch customers');
@@ -40,7 +40,7 @@ export function AdminCustomerManagementContent() {
       }
     };
     fetchCustomers();
-  }, [adminToken]);
+  }, [admin]);
 
   if (!admin) return null;
 
@@ -59,10 +59,10 @@ export function AdminCustomerManagementContent() {
   };
 
   const confirmBan = async () => {
-    if (!selectedCustomer || !adminToken) return;
+    if (!selectedCustomer) return;
     if (!banReason.trim()) return;
     try {
-      const updated = await adminApi.banCustomer(selectedCustomer.id, banReason, adminToken);
+      const updated = await adminApi.banCustomer(selectedCustomer.id, banReason);
       setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, status: updated.status, statusReason: updated.statusReason, suspendedUntil: updated.suspendedUntil } : c));
       setShowBanModal(false);
       setSelectedCustomer(null);
@@ -73,10 +73,9 @@ export function AdminCustomerManagementContent() {
   };
 
   const handleUnbanCustomer = async (customerId: number) => {
-    if (!adminToken) return;
     if (confirm('このカスタマーのBAN/停止を解除しますか？\n\nAre you sure you want to unban/unsuspend this customer?')) {
       try {
-        const updated = await adminApi.unbanCustomer(customerId, adminToken);
+        const updated = await adminApi.unbanCustomer(customerId);
         setCustomers(customers.map(c => c.id === customerId ? { ...c, status: updated.status, statusReason: updated.statusReason, suspendedUntil: updated.suspendedUntil } : c));
       } catch (err) {
         console.error('Failed to unban customer:', err);
@@ -92,10 +91,10 @@ export function AdminCustomerManagementContent() {
   };
 
   const confirmSuspend = async () => {
-    if (!selectedCustomer || !adminToken) return;
+    if (!selectedCustomer) return;
     if (!suspendReason.trim()) return;
     try {
-      const updated = await adminApi.suspendCustomer(selectedCustomer.id, suspendDuration, suspendReason, adminToken);
+      const updated = await adminApi.suspendCustomer(selectedCustomer.id, suspendDuration, suspendReason);
       setCustomers(customers.map(c => c.id === selectedCustomer.id ? { ...c, status: updated.status, statusReason: updated.statusReason, suspendedUntil: updated.suspendedUntil } : c));
       setShowSuspendModal(false);
       setSelectedCustomer(null);

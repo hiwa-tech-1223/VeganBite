@@ -4,12 +4,11 @@ import { CategoryFormData } from './categoryTypes';
 import { apiFetch } from '../config';
 
 export const categoryApi = {
-  async createCategory(data: CategoryFormData, token: string) {
+  async createCategory(data: CategoryFormData) {
     const response = await apiFetch('/api/categories', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -19,12 +18,11 @@ export const categoryApi = {
     return response.json();
   },
 
-  async updateCategory(id: number, data: CategoryFormData, token: string) {
+  async updateCategory(id: number, data: CategoryFormData) {
     const response = await apiFetch(`/api/categories/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -34,12 +32,9 @@ export const categoryApi = {
     return response.json();
   },
 
-  async deleteCategory(id: number, token: string) {
+  async deleteCategory(id: number) {
     const response = await apiFetch(`/api/categories/${id}`, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
     if (!response.ok) {
       throw new Error('Failed to delete category');

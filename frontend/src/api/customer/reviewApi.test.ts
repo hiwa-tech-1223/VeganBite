@@ -37,12 +37,13 @@ describe('reviewApi', () => {
         json: () => Promise.resolve(review),
       });
 
-      const result = await reviewApi.createReview(10, { rating: 4, comment: 'Good' }, 'test-token');
+      const result = await reviewApi.createReview(10, { rating: 4, comment: 'Good' });
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/products/10/reviews');
       expect(options.method).toBe('POST');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
       expect(JSON.parse(options.body)).toEqual({ rating: 4, comment: 'Good' });
       expect(result).toEqual(review);
     });
@@ -55,7 +56,7 @@ describe('reviewApi', () => {
       });
 
       await expect(
-        reviewApi.createReview(10, { rating: 3, comment: 'OK' }, 'token')
+        reviewApi.createReview(10, { rating: 3, comment: 'OK' })
       ).rejects.toThrow('Already reviewed this product');
     });
 
@@ -67,7 +68,7 @@ describe('reviewApi', () => {
       });
 
       await expect(
-        reviewApi.createReview(10, { rating: 3, comment: 'OK' }, 'token')
+        reviewApi.createReview(10, { rating: 3, comment: 'OK' })
       ).rejects.toThrow('Failed to create review');
     });
   });
@@ -80,7 +81,7 @@ describe('reviewApi', () => {
         json: () => Promise.resolve(updated),
       });
 
-      const result = await reviewApi.updateReview(1, { rating: 5, comment: 'Updated' }, 'test-token');
+      const result = await reviewApi.updateReview(1, { rating: 5, comment: 'Updated' });
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/reviews/1');
@@ -96,7 +97,7 @@ describe('reviewApi', () => {
       });
 
       await expect(
-        reviewApi.updateReview(1, { rating: 0, comment: 'Bad' }, 'token')
+        reviewApi.updateReview(1, { rating: 0, comment: 'Bad' })
       ).rejects.toThrow('Invalid rating');
     });
 
@@ -108,7 +109,7 @@ describe('reviewApi', () => {
       });
 
       await expect(
-        reviewApi.updateReview(1, { rating: 3, comment: 'OK' }, 'token')
+        reviewApi.updateReview(1, { rating: 3, comment: 'OK' })
       ).rejects.toThrow('Failed to update review');
     });
   });
@@ -117,18 +118,19 @@ describe('reviewApi', () => {
     it('DELETEリクエストを送信する', async () => {
       mockFetch.mockResolvedValue({ ok: true });
 
-      await reviewApi.deleteReview(1, 'test-token');
+      await reviewApi.deleteReview(1);
 
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toContain('/api/reviews/1');
       expect(options.method).toBe('DELETE');
-      expect(options.headers.Authorization).toBe('Bearer test-token');
+      // 認証は httpOnly Cookie で行うため、ブラウザ側からトークンを送らない
+      expect(options?.headers?.Authorization).toBeUndefined();
     });
 
     it('レスポンスがエラーの場合は例外を投げる', async () => {
       mockFetch.mockResolvedValue({ ok: false, status: 403 });
 
-      await expect(reviewApi.deleteReview(1, 'token')).rejects.toThrow('Failed to delete review');
+      await expect(reviewApi.deleteReview(1)).rejects.toThrow('Failed to delete review');
     });
   });
 });
