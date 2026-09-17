@@ -2,9 +2,11 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net/http"
 
+	"backend/domain/customer"
 	"backend/infrastructure/auth"
 	"backend/usecase"
 
@@ -56,6 +58,12 @@ func (h *AuthHandler) HandleGoogleCallback(c echo.Context) error {
 
 	cust, err := h.authUsecase.FindOrCreateCustomer(userInfo)
 	if err != nil {
+		switch {
+		case errors.Is(err, customer.ErrBanned):
+			return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL+"/login?error=banned")
+		case errors.Is(err, customer.ErrSuspended):
+			return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL+"/login?error=suspended")
+		}
 		log.Printf("Find or create customer error: %v", err)
 		return c.Redirect(http.StatusTemporaryRedirect, h.frontendURL+"/login?error=user_create")
 	}

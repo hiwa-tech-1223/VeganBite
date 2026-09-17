@@ -111,6 +111,8 @@ func NewEcho(cfg *config.Config) (*echo.Echo, error) {
 	// Protected routes - require authentication
 	authGroup := e.Group("/api")
 	authGroup.Use(handler.JWTMiddleware(jwtService))
+	// BAN・一時停止を発行済みトークンにも即時反映する（管理者は対象外）
+	authGroup.Use(handler.CustomerStatusMiddleware(authUsecase))
 
 	// Auth info
 	authGroup.GET("/auth/me", authHandler.GetMe)

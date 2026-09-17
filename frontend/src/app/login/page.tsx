@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Leaf } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { authApi } from '@/api/auth/authApi';
+import { getLoginErrorMessage } from './loginErrorMessage';
 
 function LoginContent() {
   const { customer } = useAuth();
@@ -62,7 +63,7 @@ function LoginContent() {
 
         {error && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm text-center">
-            ログインに失敗しました。もう一度お試しください。
+            {getLoginErrorMessage(error)}
           </div>
         )}
 
