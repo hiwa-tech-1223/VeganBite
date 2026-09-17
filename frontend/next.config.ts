@@ -1,4 +1,5 @@
 import type { NextConfig } from 'next';
+import { withBotId } from 'botid/next/config';
 
 const nextConfig: NextConfig = {
   output: 'standalone',
@@ -11,4 +12,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// BotID のチャレンジ用スクリプトを同一オリジン経由で配信する（広告ブロッカー等で無効化されないようにするため）
+export default withBotId(nextConfig);
