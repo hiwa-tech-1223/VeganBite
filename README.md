@@ -68,6 +68,8 @@ Terraform の定義は [infra/](infra/) にあります。Vercel のプロジェ
 
 - **scale-to-zero を徹底**: Cloud Run は `min_instance_count = 0` かつ CPU はリクエスト処理中のみ割り当て。Neon は Free プランのため常にサスペンド対象。DB への keep-alive や定期 ping は実装しない
 - **Go API は Vercel の中継ルート経由で呼ぶ**: ブラウザからは同一オリジンの `/api/*` に投げ、Next.js の Route Handler が Cloud Run に転送する。CORS 設定が不要で、バックエンドの URL もブラウザに露出しない
+- **Cloud Run は Vercel 経由のリクエストだけを受け付ける**: Cloud Run の URL 自体は公開だが、Vercel だけが知る共有シークレットを `X-Origin-Verify` ヘッダーで照合し、一致しないリクエストは Go が 403 を返す。Vercel の Firewall を迂回した直接アクセスを塞ぐため（CloudFront + オリジンのカスタムヘッダー照合と同じ考え方）。IAM 認証なら届く前に弾けるが、Vercel からの OIDC 連携が必要なため見送った
+- **Bot 対策は入口の Vercel で行う**: 同一 IP から `/api` への 1 分あたり 100 回超を Vercel Firewall のレート制限で 429 にする。書き込み系 API（POST / PUT / DELETE）は Vercel BotID（Basic）でブラウザ上のチャレンジを検証し、ページを経由しないスクリプトからのリクエストを 403 にする。いずれも Hobby プランの無料枠内
 - **秘密情報は Secret Manager から注入**: 実行用サービスアカウントには secret 単位で参照権限を付与。秘密でない値（クライアント ID、フロント URL）は平文の環境変数
 - **CI/CD は長期鍵を持たない**: GitHub Actions は Workload Identity Federation でデプロイ用サービスアカウントになりすます。信頼するのはこのリポジトリからの OIDC トークンのみ
 - **DB は公開エンドポイントだが、暗号化と最小権限で守る**: DB をプライベートネットワークに閉じ込めるには VPC コネクタや NAT（GCP 側）、IP 制限（Neon の有料プラン）が必要で、いずれも「常時課金なし」の方針と両立しない。そのため公開エンドポイントを前提に、接続は TLS 必須かつサーバー証明書も検証し（`sslmode=verify-full`）、アプリはデータの読み書きだけができる専用ロールで接続してテーブル定義の変更や削除はできないようにしている。DDL を持つオーナーロールはマイグレーション専用

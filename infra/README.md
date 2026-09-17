@@ -50,6 +50,8 @@ terraform apply
 
 - `min_instance_count` を 1 以上にしない、`cpu_idle` を false にしない（常時課金になる）
 - Cloud Run のイメージ更新は CI/CD（`gcloud run deploy`）の責務。Terraform は `image` の差分を無視する
+- 共有シークレット（`veganbite-dev-origin-verify-secret`）を入れ替えると、Vercel の再デプロイと Cloud Run の新リビジョンが揃うまで API が 403 になる。入れ替えるときは Go 側の照合を一時的に外す（`cloudrun.tf` の `ORIGIN_VERIFY_SECRET` を外して apply）→ 値を更新して Vercel を再デプロイ → 照合を戻す、の順で行う
+- Vercel Firewall のレート制限は Hobby の枠（ルール 1 本）を使い切っている。ルールを増やすときはプランの上限を確認する
 - neon provider は community 製のためバージョンを完全固定している。`terraform init -upgrade` は CHANGELOG を確認してから実行する。`neon_project` には `prevent_destroy` を付けている
 
 ## 構成図（docs/architecture.png）の再生成
