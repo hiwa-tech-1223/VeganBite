@@ -13,6 +13,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
+    "botid": "^1.5.11",
     "clsx": "^2.1.1",
     "lucide-react": "^1.40.0",
     "next": "^15.5.14",

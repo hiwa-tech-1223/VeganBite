@@ -1,3 +1,5 @@
+import { withOriginVerify } from './originVerify';
+
 const isServer = typeof window === 'undefined';
 
 // サーバーサイド: Go API へ直接リクエスト（Cloud Run の URL、ローカルは 8080）
@@ -7,8 +9,14 @@ const CLIENT_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 // サーバーサイド・クライアントサイド共通のfetch関数
 export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {
-  const baseUrl = isServer ? SERVER_API_BASE_URL : CLIENT_API_BASE_URL;
-  return fetch(`${baseUrl}${path}`, options);
+  if (isServer) {
+    // SSR / ISR からの直接呼び出しにも共有シークレットを付ける（Go 側で Vercel 経由かを照合する）
+    return fetch(`${SERVER_API_BASE_URL}${path}`, {
+      ...options,
+      headers: withOriginVerify(options?.headers),
+    });
+  }
+  return fetch(`${CLIENT_API_BASE_URL}${path}`, options);
 }
 
 // ブラウザから直接遷移する URL（OAuth ログイン開始など）の組み立て用
