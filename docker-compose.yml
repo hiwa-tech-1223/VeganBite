@@ -49,7 +49,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080
+      # ブラウザからの API は同一オリジンの中継ルート（/api/*）経由。サーバー側だけが Go を直接呼ぶ
       API_URL_INTERNAL: http://backend:8080
     volumes:
       - ./frontend:/app
