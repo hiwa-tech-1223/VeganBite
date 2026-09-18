@@ -25,11 +25,11 @@
 
 ### ディレクトリ構成（バックエンド）
 ```
-internal/
-├── domain/       # エンティティ、リポジトリインターフェース
-├── usecase/      # ビジネスロジック
+backend/
+├── domain/          # エンティティ、リポジトリインターフェース
+├── usecase/         # ビジネスロジック
 ├── infrastructure/  # DB実装、外部API
-└── interface/    # ハンドラー、DTO
+└── interfaces/      # ハンドラー、DTO、ミドルウェア
 ```
 
 ## コーディング規約
@@ -51,3 +51,25 @@ internal/
 ### デザイン関係
 - アイコンはMaterial Symbolsを使用（className={`material-symbols-...`}）
 - Figma上のアイコンはダウンロードせず、同様のMaterial Symbolsアイコンを使用
+
+## レビュー観点
+
+`/review-check` はこの節を参照する。重要度順に確認する。
+
+1. 秘密情報（API キー、トークン、パスワード、接続文字列、`*.tfvars` の中身）を差分・`NEXT_PUBLIC_` 付きの環境変数・ブラウザ向けのコード・ログに出していないか。JWT を localStorage や URL に置いていないか
+2. 認証・認可が崩れていないか
+   - backend: 認証が必要なルートが `authGroup` の中にあるか。本人しか操作できない処理に所有者チェックがあるか
+   - front: ブラウザから Go を直接呼ばず、同一オリジンの `/api/*` 中継ルートを経由しているか。中継を通らない書き込み系ルートを追加した場合、CSRF 確認（`isSameOriginWrite`）と BotID の対象になっているか
+3. 常時課金が発生しないか。Cloud Run の `min_instance_count = 0` と `cpu_idle = true` を保っているか。VPC コネクタ、NAT、ロードバランサ、Cloud SQL など置くだけで課金されるリソースや、DB を定期的に叩く処理（keep-alive、cron）を追加していないか
+4. ループ内クエリ（N+1）を新たに増やしていないか
+5. 例外の握りつぶし、エラーの無視がないか
+6. アーキテクチャ方針とコーディング規約に沿っているか
+   - backend: 依存の向きが Handler → UseCase → Domain になっているか。domain が外部ライブラリに依存していないか
+   - front: API 呼び出しがコンポーネントに直書きされず `src/api/` を経由しているか。`any` や型の省略がないか
+7. 領域をまたぐ変更が揃っているか
+   - Go の API の形（URL、メソッド、項目名、ステータスコード）を変えた場合、`frontend/src/api/` の呼び出しと型が追従しているか（フロントのテストは応答を模擬しているため検出できない）
+   - 環境変数の名前や意味を変えた場合、`backend/config/config.go`、`infra/environments/dev/`、`docker-compose.yml` が揃っているか
+8. 変更した挙動に対応するテストがあるか。既存テストの期待値を安易に書き換えていないか。フロントでテストを書かない場合、ブラウザでの動作確認が必要と明記する
+9. `eslint-disable` や `//nolint` を新しく追加していないか。除外せずに済む書き方がないか
+10. 差分が最小か。修正と無関係なリファクタ・整形変更が混ざっていないか
+11. インフラ・認証・セキュリティの挙動を変えた場合、README の「Infrastructure Architecture」「Security」と構成図（`docs/architecture.mmd`）が実態と合っているか
