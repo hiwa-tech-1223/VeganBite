@@ -20,7 +20,8 @@ export function ProductListContent({
   initialCategories,
 }: ProductListContentProps) {
   const { customer } = useAuth();
-  const [products, setProducts] = useState<ApiProduct[]>(initialProducts);
+  // 絞り込み中に取得した商品。初期状態（全カテゴリ・検索なし）では SSR で受け取った initialProducts を使う
+  const [filteredProducts, setFilteredProducts] = useState<ApiProduct[]>([]);
   const [categories] = useState<ApiCategory[]>(initialCategories);
   const [selectedCategory, setSelectedCategory] = useState<'all' | number>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,11 +30,12 @@ export function ProductListContent({
   const [error, setError] = useState<string | null>(null);
   const itemsPerPage = 6;
 
-  // フィルター変更時: 商品を再取得
+  const isDefaultFilter = selectedCategory === 'all' && searchQuery === '';
+  const products = isDefaultFilter ? initialProducts : filteredProducts;
+
+  // フィルター変更時: 商品を再取得（初期状態では取得せず SSR データを使う）
   useEffect(() => {
-    // 初期状態（全カテゴリ・検索クエリなし）ではSSRデータをそのまま使う
-    if (selectedCategory === 'all' && searchQuery === '') {
-      setProducts(initialProducts);
+    if (isDefaultFilter) {
       return;
     }
 
@@ -45,7 +47,7 @@ export function ProductListContent({
           category: selectedCategory === 'all' ? undefined : selectedCategory,
           search: searchQuery,
         });
-        setProducts(data ?? []);
+        setFilteredProducts(data ?? []);
       } catch (err) {
         setError('商品の取得に失敗しました / Failed to fetch products');
         console.error('Failed to fetch products:', err);
@@ -57,7 +59,7 @@ export function ProductListContent({
     // デバウンス: 検索入力時は300ms、カテゴリ変更は即時
     const debounceTimer = setTimeout(fetchProducts, searchQuery ? 300 : 0);
     return () => clearTimeout(debounceTimer);
-  }, [selectedCategory, searchQuery, initialProducts]);
+  }, [selectedCategory, searchQuery, isDefaultFilter]);
 
   // ページネーション計算
   const totalPages = Math.ceil(products.length / itemsPerPage);

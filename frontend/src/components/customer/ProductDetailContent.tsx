@@ -48,17 +48,18 @@ export function ProductDetailContent({
   const productId = product.id;
   const customerId = customer?.id;
 
-  // ログインカスタマーの既存レビューを検出
+  // ログインカスタマーの既存レビューを検出し、入力欄の初期値にする。
+  // ログイン状態の確認が非同期に終わるため、描画後に反映する必要がある
   useEffect(() => {
-    if (customerId) {
-      const customerReview = reviews.find((r) => r.customerId === customerId);
-      if (customerReview) {
-        setExistingCustomerReview(customerReview);
-        setRating(customerReview.rating);
-        setComment(customerReview.comment);
-      } else {
-        setExistingCustomerReview(null);
-      }
+    if (!customerId) {
+      return;
+    }
+    const customerReview = reviews.find((r) => r.customerId === customerId) ?? null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 取得済みレビューをフォームの初期値に反映するための意図的な更新
+    setExistingCustomerReview(customerReview);
+    if (customerReview) {
+      setRating(customerReview.rating);
+      setComment(customerReview.comment);
     }
   }, [customerId, reviews]);
 
