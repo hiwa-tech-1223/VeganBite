@@ -3,9 +3,11 @@ import { withOriginVerify } from './originVerify';
 const isServer = typeof window === 'undefined';
 
 // サーバーサイド: Go API へ直接リクエスト（Cloud Run の URL、ローカルは 8080）
-// クライアントサイド: 未設定なら同一オリジンの /api 中継ルート経由
+// クライアントサイド: 常に同一オリジンの /api 中継ルート経由。
+// 認証は httpOnly Cookie を中継ルートが Authorization ヘッダーに詰め替える方式のため、
+// ブラウザから Go に直接リクエストすると常に未ログイン扱いになる（本番・ローカル共通）
 const SERVER_API_BASE_URL = process.env.API_URL_INTERNAL || 'http://localhost:8080';
-const CLIENT_API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
+const CLIENT_API_BASE_URL = '';
 
 // サーバーサイド・クライアントサイド共通のfetch関数
 export async function apiFetch(path: string, options?: RequestInit): Promise<Response> {

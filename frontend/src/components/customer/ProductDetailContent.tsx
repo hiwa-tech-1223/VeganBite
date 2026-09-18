@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -14,6 +14,7 @@ import { ApiReview } from '@/api/customer/reviewTypes';
 import { customerApi } from '@/api/customer/customerApi';
 import { StarRating } from '@/components/common/StarRating';
 import { Footer } from '@/components/common/Footer';
+import { ReviewForm, ReviewFormValues } from '@/components/customer/ReviewForm';
 
 interface ProductDetailContentProps {
   initialProduct: ApiProduct;
@@ -35,33 +36,16 @@ export function ProductDetailContent({
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
 
   // レビューフォーム
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
-  const [reviewError, setReviewError] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
-  // 編集モード（既存レビューがある場合）
-  const [existingCustomerReview, setExistingCustomerReview] = useState<ApiReview | null>(null);
-  const isEditMode = existingCustomerReview !== null;
 
   const productId = product.id;
   const customerId = customer?.id;
 
-  // ログインカスタマーの既存レビューを検出し、入力欄の初期値にする。
-  // ログイン状態の確認が非同期に終わるため、描画後に反映する必要がある
-  useEffect(() => {
-    if (!customerId) {
-      return;
-    }
-    const customerReview = reviews.find((r) => r.customerId === customerId) ?? null;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 取得済みレビューをフォームの初期値に反映するための意図的な更新
-    setExistingCustomerReview(customerReview);
-    if (customerReview) {
-      setRating(customerReview.rating);
-      setComment(customerReview.comment);
-    }
-  }, [customerId, reviews]);
+  // ログイン中のカスタマーの既存レビュー（あれば編集モード）。レビュー一覧から導出する
+  const existingCustomerReview = useMemo(
+    () => (customerId ? reviews.find((r) => r.customerId === customerId) ?? null : null),
+    [customerId, reviews],
+  );
+  const isEditMode = existingCustomerReview !== null;
 
   // お気に入り状態を取得
   useEffect(() => {
@@ -78,71 +62,23 @@ export function ProductDetailContent({
     fetchFavorites();
   }, [customer, productId]);
 
-  const validateReview = (): Record<string, string> => {
-    const errors: Record<string, string> = {};
-    const trimmedComment = comment.trim();
-
-    if (rating < 1 || rating > 5) {
-      errors.rating = 'Rating must be between 1 and 5 / 評価は1〜5の間で選択してください';
-    }
-    if (!trimmedComment) {
-      errors.comment = 'Comment is required / コメントを入力してください';
-    } else if (trimmedComment.length < 10) {
-      errors.comment = `Comment must be at least 10 characters (currently ${trimmedComment.length}) / コメントは10文字以上必要です（現在${trimmedComment.length}文字）`;
-    } else if (trimmedComment.length > 1000) {
-      errors.comment = `Comment must be at most 1000 characters (currently ${trimmedComment.length}) / コメントは1000文字以内にしてください（現在${trimmedComment.length}文字）`;
-    }
-    return errors;
-  };
-
-  const handleSubmitReview = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!customer) {
-      router.push('/login');
-      return;
+  // レビューの投稿・更新。失敗したら例外をそのまま投げ、フォーム側でメッセージを表示する
+  const handleSubmitReview = async ({ rating, comment }: ReviewFormValues): Promise<void> => {
+    if (existingCustomerReview) {
+      const updatedReview = await reviewApi.updateReview(existingCustomerReview.id, { rating, comment });
+      setReviews((prev) => prev.map((r) => (r.id === updatedReview.id ? updatedReview : r)));
+    } else {
+      const createdReview = await reviewApi.createReview(productId, { rating, comment });
+      setReviews((prev) => [createdReview, ...prev]);
     }
 
-    const errors = validateReview();
-    if (Object.keys(errors).length > 0) {
-      setValidationErrors(errors);
-      return;
-    }
-
-    setIsSubmittingReview(true);
-    setReviewError(null);
-    setValidationErrors({});
-    try {
-      let updatedReview: ApiReview;
-
-      if (isEditMode && existingCustomerReview) {
-        updatedReview = await reviewApi.updateReview(
-          existingCustomerReview.id,
-          { rating, comment }
-        );
-        setReviews((prev) =>
-          prev.map((r) => (r.id === updatedReview.id ? updatedReview : r))
-        );
-        setExistingCustomerReview(updatedReview);
-      } else {
-        updatedReview = await reviewApi.createReview(productId, { rating, comment });
-        setReviews((prev) => [updatedReview, ...prev]);
-        setExistingCustomerReview(updatedReview);
-      }
-
-      const updatedProduct = await productApi.getProduct(productId);
-      setProduct(updatedProduct);
-      toast.success(
-        isEditMode
-          ? 'レビューを更新しました / Review updated successfully!'
-          : 'レビューを投稿しました / Review submitted successfully!'
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to submit review';
-      setReviewError(message);
-      console.error('Failed to submit review:', err);
-    } finally {
-      setIsSubmittingReview(false);
-    }
+    const updatedProduct = await productApi.getProduct(productId);
+    setProduct(updatedProduct);
+    toast.success(
+      existingCustomerReview
+        ? 'レビューを更新しました / Review updated successfully!'
+        : 'レビューを投稿しました / Review submitted successfully!'
+    );
   };
 
   const toggleFavorite = async () => {
@@ -358,108 +294,18 @@ export function ProductDetailContent({
           </div>
         </div>
 
-        {/* Review Form */}
-        <div className="bg-white rounded-xl shadow-md p-8 mt-8">
-          <h2 className="text-2xl mb-4" style={{ color: 'var(--text)' }}>
-            {isEditMode
-              ? 'Edit Your Review / レビューを編集'
-              : 'Write a Review / レビューを書く'}
-          </h2>
-          {isEditMode && (
-            <div className="mb-4 p-3 bg-blue-100 text-blue-700 rounded-lg">
-              You have already reviewed this product. You can edit your review below.
-              / この商品はすでにレビュー済みです。以下から編集できます。
-            </div>
-          )}
-          {reviewError && (
-            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
-              {reviewError}
-            </div>
-          )}
-          <form onSubmit={handleSubmitReview} noValidate>
-            <div className="mb-4">
-              <label className="block mb-2" style={{ color: 'var(--text)' }}>
-                Rating / 評価
-              </label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => {
-                      setRating(star);
-                      setValidationErrors((prev) => {
-                        const rest = { ...prev };
-                        delete rest.rating;
-                        return rest;
-                      });
-                    }}
-                    className="text-3xl"
-                    style={{ color: star <= rating ? 'var(--accent)' : '#ddd' }}
-                  >
-                    ★
-                  </button>
-                ))}
-              </div>
-              {validationErrors.rating && (
-                <p className="text-sm text-red-600 mt-1">{validationErrors.rating}</p>
-              )}
-            </div>
-            <div className="mb-4">
-              <label className="block mb-2" style={{ color: 'var(--text)' }}>
-                Comment / コメント
-              </label>
-              <textarea
-                value={comment}
-                onChange={(e) => {
-                  setComment(e.target.value);
-                  setValidationErrors((prev) => {
-                    const rest = { ...prev };
-                    delete rest.comment;
-                    return rest;
-                  });
-                }}
-                className={`w-full p-3 border rounded-xl focus:outline-none ${
-                  validationErrors.comment
-                    ? 'border-red-300 focus:border-red-300'
-                    : 'border-gray-300 focus:border-[var(--primary)]'
-                }`}
-                rows={4}
-                placeholder="Share your experience... / あなたの体験をシェア..."
-                minLength={10}
-                maxLength={1000}
-              />
-              <div className="flex justify-between mt-1">
-                {validationErrors.comment ? (
-                  <p className="text-sm text-red-600">{validationErrors.comment}</p>
-                ) : (
-                  <span />
-                )}
-                <span
-                  className={`text-xs ${
-                    comment.trim().length > 1000 ? 'text-red-600' : 'text-gray-400'
-                  }`}
-                >
-                  {comment.trim().length}/1000
-                </span>
-              </div>
-            </div>
-            <button
-              type="submit"
-              disabled={isSubmittingReview}
-              className="px-6 py-3 rounded-full text-white disabled:opacity-50"
-              style={{ backgroundColor: 'var(--primary)' }}
-            >
-              {isSubmittingReview
-                ? isEditMode
-                  ? 'Updating... / 更新中...'
-                  : 'Submitting... / 投稿中...'
-                : isEditMode
-                  ? 'Update Review / レビューを更新'
-                  : 'Submit Review / レビューを投稿'}
-            </button>
-          </form>
-        </div>
+        {/* Review Form: 既存レビューが見つかったら key が変わり、その内容を初期値として作り直される */}
+        <ReviewForm
+          key={existingCustomerReview?.id ?? 'new'}
+          initialValues={{
+            rating: existingCustomerReview?.rating ?? 5,
+            comment: existingCustomerReview?.comment ?? '',
+          }}
+          isEditMode={isEditMode}
+          isLoggedIn={customer !== null}
+          onLoginRequired={() => router.push('/login')}
+          onSubmit={handleSubmitReview}
+        />
 
         {/* Reviews List */}
         <div className="bg-white rounded-xl shadow-md p-8 mt-8">
