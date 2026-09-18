@@ -7,6 +7,7 @@ import { AdminHeader } from '@/components/admin/AdminHeader';
 import { adminApi } from '@/api/admin/customerApi';
 import { ManagedCustomer } from '@/api/admin/customerTypes';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsClient } from '@/hooks/useIsClient';
 
 export function AdminCustomerManagementContent() {
   const { admin } = useAuth();
@@ -21,13 +22,8 @@ export function AdminCustomerManagementContent() {
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspendDuration, setSuspendDuration] = useState(7);
   const [suspendReason, setSuspendReason] = useState('');
-  const [mounted, setMounted] = useState(false);
-
-  // createPortal はサーバー描画時に使えないため、マウント後だけモーダルを描画する（ハイドレーション対策）
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- マウント判定のための意図的な更新
-    setMounted(true);
-  }, []);
+  // createPortal はサーバー描画時に使えないため、ブラウザでの描画時だけモーダルを出す（ハイドレーション対策）
+  const mounted = useIsClient();
 
   useEffect(() => {
     const fetchCustomers = async () => {
